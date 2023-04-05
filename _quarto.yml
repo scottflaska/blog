@@ -3,9 +3,10 @@ project:
   output-dir: docs
 
 website:
-  title: "Scott Flaska | Blog"
+  title: "Scott Flaska"
   navbar:
     right:
+      - index.qmd
       - about.qmd
       - icon: github
         href: https://github.com/scottflaska
