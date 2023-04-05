@@ -1,8 +1,8 @@
 ---
-title: "Welcome To My Blog"
+title: "Welcome!"
 author: "Scott Flaska"
 date: "2023-04-02"
-categories: [data science, sports analytics, machine learning]
+categories: []
 ---
 
 Welcome to my blog! Hoping to post (somewhat) frequently on data science and sports analytics.
