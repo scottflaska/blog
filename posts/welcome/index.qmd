@@ -1,12 +1,8 @@
 ---
 title: "Welcome To My Blog"
-author: "Tristan O'Malley"
+author: "Scott Flaska"
 date: "2023-04-02"
-categories: [news]
+categories: [data science, sports analytics, machine learning]
 ---
 
-This is the first post in a Quarto blog. Welcome!
-
-![](thumbnail.jpg)
-
-Since this post doesn't specify an explicit `image`, the first image in the post will be used in the listing page of posts.
+Welcome to my blog! Hoping to post (somewhat) frequently on data science and sports analytics.

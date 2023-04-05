@@ -1,0 +1,21 @@
+---
+title: "Intro to DVC"
+author: "Scott Flaska"
+date: "2023-04-05"
+categories: [version control, git, devops]
+image: "dvc.png"
+---
+
+This is a post with executable code.
+
+```{r}
+1 + 1
+```
+
+``` bash
+dvc push
+```
+
+```{r}
+head(mtcars)
+```
