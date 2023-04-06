@@ -16,9 +16,9 @@
   {
     "objectID": "posts/dvc/index.html",
     "href": "posts/dvc/index.html",
-    "title": "Intro to Data Version Control",
+    "title": "DVC!",
     "section": "",
-    "text": "Data Version Control (DVC) is a tool I've found helpful for data science projects. I came across DVC while looking for a better way to manage datasets and models within our Football Technology and Research group at the Broncos.\n\n1 + 1\n\n[1] 2\n\n\ndvc push"
+    "text": "Data Version Control (DVC) is a tool I’ve found helpful for data science projects. I came across DVC while looking for a better way to manage datasets and models within our Football Technology and Research group at the Broncos.\ndvc push"
   },
   {
     "objectID": "posts/post-with-code/index.html",
@@ -46,6 +46,6 @@
     "href": "blog.html",
     "title": "Blog",
     "section": "",
-    "text": "Intro to Data Version Control\n\n\n\n\n\n\n\nversion control\n\n\ngit\n\n\ndevops\n\n\n\n\n\n\n\n\n\n\n\nApr 5, 2023\n\n\nScott Flaska\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome!\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nApr 2, 2023\n\n\nScott Flaska\n\n\n\n\n\n\nNo matching items"
+    "text": "DVC!\n\n\n\n\n\n\n\nversion control\n\n\ngit\n\n\ndevops\n\n\n\n\n\n\n\n\n\n\n\nApr 5, 2023\n\n\nScott Flaska\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome!\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nApr 2, 2023\n\n\nScott Flaska\n\n\n\n\n\n\nNo matching items"
   }
 ]
