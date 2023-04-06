@@ -15,4 +15,4 @@ about:
       href: https://github.com/scottflaska
 ---
 
-About this blog
+I am a data scientist - currently working as the senior manager of football analytics for the Denver Broncos. In my current role, I collaborate with the football operations departments to design, plan, and implement projects that help improve decision-making and efficiency across the organization.

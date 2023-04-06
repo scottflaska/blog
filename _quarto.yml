@@ -6,7 +6,7 @@ website:
   title: "Scott Flaska"
   navbar:
     right:
-      - index.qmd
+      - blog.qmd
       - about.qmd
       - icon: github
         href: https://github.com/scottflaska
