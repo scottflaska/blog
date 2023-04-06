@@ -1,7 +1,7 @@
 {
-  "hash": "fe29945343087f1824f7b094ed750dbb",
+  "hash": "99e8b86b5ec2cc89c2f4e15c46f53742",
   "result": {
-    "markdown": "---\ntitle: \"Intro to Data Version Control\"\nauthor: \"Scott Flaska\"\ndate: \"2023-04-05\"\ncategories: [version control, git, devops]\nimage: \"dvc.png\"\n---\n\n\nThis is a post with executable code.\n\n\n::: {.cell}\n\n```{.r .cell-code}\n1 + 1\n```\n\n::: {.cell-output .cell-output-stdout}\n```\n[1] 2\n```\n:::\n:::\n\n\n``` bash\ndvc push\n```\n\n\n::: {.cell}\n\n```{.r .cell-code}\nhead(mtcars)\n```\n\n::: {.cell-output .cell-output-stdout}\n```\n                   mpg cyl disp  hp drat    wt  qsec vs am gear carb\nMazda RX4         21.0   6  160 110 3.90 2.620 16.46  0  1    4    4\nMazda RX4 Wag     21.0   6  160 110 3.90 2.875 17.02  0  1    4    4\nDatsun 710        22.8   4  108  93 3.85 2.320 18.61  1  1    4    1\nHornet 4 Drive    21.4   6  258 110 3.08 3.215 19.44  1  0    3    1\nHornet Sportabout 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2\nValiant           18.1   6  225 105 2.76 3.460 20.22  1  0    3    1\n```\n:::\n:::\n",
+    "markdown": "---\ntitle: \"Intro to Data Version Control\"\nauthor: \"Scott Flaska\"\ndate: \"2023-04-05\"\ncategories: [version control, git, devops]\nimage: \"dvc.png\"\nformat: html\n---\n\n\n[Data Version Control (DVC)](https://dvc.org/) is a tool I\\'ve found helpful for data science projects. I came across DVC while looking for a better way to manage datasets and models within our Football Technology and Research group at the Broncos.\n\n\n::: {.cell}\n\n```{.r .cell-code}\n1 + 1\n```\n\n::: {.cell-output .cell-output-stdout}\n```\n[1] 2\n```\n:::\n:::\n\n\n``` bash\ndvc push\n```\n",
     "supporting": [],
     "filters": [
       "rmarkdown/pagebreak.lua"

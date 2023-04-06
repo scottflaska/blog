@@ -5,5 +5,12 @@
       "/posts/dvc/index.html",
       "/posts/welcome/index.html"
     ]
+  },
+  {
+    "listing": "/blog.html",
+    "items": [
+      "/posts/dvc/index.html",
+      "/posts/welcome/index.html"
+    ]
   }
 ]

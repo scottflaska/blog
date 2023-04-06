@@ -1,21 +1,14 @@
 ---
-title: "Intro to Data Version Control"
+title: "DVC!"
 author: "Scott Flaska"
 date: "2023-04-05"
 categories: [version control, git, devops]
 image: "dvc.png"
+format: html
 ---
 
-This is a post with executable code.
-
-```{r}
-1 + 1
-```
+[Data Version Control (DVC)](https://dvc.org/) is a tool I've found helpful for data science projects. I came across DVC while looking for a better way to manage datasets and models within our Football Technology and Research group at the Broncos.
 
 ``` bash
 dvc push
-```
-
-```{r}
-head(mtcars)
 ```
