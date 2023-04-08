@@ -18,7 +18,7 @@
     "href": "posts/dvc/index.html",
     "title": "DVC!",
     "section": "",
-    "text": "Data Version Control (DVC) is a tool I’ve found helpful for data science projects. I came across DVC while looking for a better way to manage datasets and models within our Football Technology and Research group at the Broncos.\ndvc push"
+    "text": "Data Version Control (DVC) is a tool I’ve found helpful for data science projects. I came across DVC while looking for a better way to manage datasets and models within our Football Technology and Research group at the Broncos. In fact, I've found it so helpful and easy to use, that I'm shocked that I don't see it discussed more frequently in some of the communities I follow online (mostly R and football analytics).\nLast May I shared a brief introduction to DVC with other NFL data scientists and software developers at our annual conference. I figured I would repost it here for anyone that might find it useful.\n\nOverview\ndvc push"
   },
   {
     "objectID": "posts/post-with-code/index.html",
@@ -32,7 +32,7 @@
     "href": "posts/welcome/index.html",
     "title": "Welcome!",
     "section": "",
-    "text": "Welcome to my blog! Hoping to post (somewhat) frequently on data science and sports analytics."
+    "text": "Welcome to my blog! Hoping to post (somewhat) frequently on data science, sports analytics, and other topics."
   },
   {
     "objectID": "home.html",
