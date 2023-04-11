@@ -264,5 +264,5 @@ shot_level_clean_coords_cut %>%
 ```
 
 ```{r}
-
+saveRDS(object = shot_level_clean_coords_cut, file = "shot_level.rds")
 ```
