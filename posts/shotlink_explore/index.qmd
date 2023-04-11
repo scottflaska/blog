@@ -1,0 +1,101 @@
+---
+title: "Exploring PGA Shotlink Data"
+author: "Scott Flaska"
+date: "2023-04-10"
+categories: [shotlink, golf, r, eda]
+image: ""
+format: html
+---
+
+Last year, I found some sample data while reading about PGA Shotlink[^1]. I decided to put together a series of posts using with this data. This first post will cover some simple data ingestion and EDA.
+
+[^1]: The data was available [here](https://www.pgatour.com/stats/shotlinkintelligence/overview.html), but it looks like it's been moved.
+
+The sample contains 4 delimited text files: event-level, hole-level, round-level, and shot-level with. I'll start by taking a look at the shot-level data:
+
+```{r}
+#| output: false
+library(tidyverse)
+```
+
+```{r}
+shot_level <- read.delim(file ='shotlink_sample/StrokeLevelTOURChamp.txt')
+str(shot_level)
+```
+
+This table has a ton of interesting fields to explore, but first I want to clean up the column names - the [`janitor`](https://sfirke.github.io/janitor/) package makes this really easy
+
+```{r}
+shot_level_clean <- shot_level %>% 
+  janitor::clean_names() %>% 
+  rename(num_of_strokes = x_of_strokes,
+         first_putt_flag = x1st_putt_flag)
+
+shot_level_clean %>% 
+  colnames() %>% 
+  head(10) 
+```
+
+Next, I'd like to get a feel for the scope of the data.
+
+```{r}
+#How many tournaments?
+shot_level_clean %>% 
+  select(year, tournament_name, round) %>% 
+  distinct()
+
+
+```
+
+```{r}
+#How many players?
+shot_level_clean %>% 
+  select(player,
+         player_first_name,
+         player_last_name) %>% 
+  distinct()
+```
+
+```{r}
+#Player scores?
+shot_level_clean %>% 
+  group_by(player,
+           player_first_name,
+           player_last_name,
+           round) %>% 
+  summarize(shots = n(),
+            .groups = "keep") %>% 
+  ungroup() %>% 
+  mutate(round = paste0("round_",round)) %>% 
+  pivot_wider(names_from = round,
+              values_from = shots) %>% 
+  as.data.frame() %>% 
+  mutate(final_score = round_1 + round_2 + round_3 + round_4) %>% 
+  arrange(final_score) %>% 
+  select(-player, -player_first_name) %>% 
+  head()
+  
+```
+
+At first glance, the data looks straightforward: one row for every stroke in the [2011 FedEx Cup Playoffs](https://en.wikipedia.org/wiki/2011_FedEx_Cup_Playoffs), with Hunter Mahan defeating the field of 30 with a final score of 272. However, a quick Google search shows that Bill Haas actually won the tournament in a playoff over Hunter Mahan. Referencing the [docs](https://github.com/scottflaska/blog/tree/development/posts/shotlink_explore/shotlink_sample), the number of strokes assessed actually comes from the `# of Strokes`[^2] column (renamed to `num_of_strokes` above) to account for drops and penalties.
+
+[^2]: `# of Strokes` (1 digit numeric): The number of strokes assessed for this shot. In most cases, this will be '1', but it may be '0' for a drop or '2' for a 2-stroke penalty.
+
+```{r}
+shot_level_clean %>% 
+  group_by(player,
+           player_first_name,
+           player_last_name,
+           round) %>% 
+  summarize(shots = sum(num_of_strokes),
+            .groups = "keep") %>% 
+  ungroup() %>% 
+  mutate(round = paste0("round_",round)) %>% 
+  pivot_wider(names_from = round,
+              values_from = shots) %>% 
+  as.data.frame() %>% 
+  mutate(final_score = round_1 + round_2 + round_3 + round_4) %>% 
+  arrange(final_score) %>% 
+  select(-player, -player_first_name) %>% 
+  head()
+```
