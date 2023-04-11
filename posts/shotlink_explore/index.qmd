@@ -179,7 +179,7 @@ Definitely looks like a golf course, especially when you overlay it on top of th
 
 Next I'd like to take a look at the cut[^3] information for each shot. The table has two columns with this information:
 
-[^3]: (fairway, rough, green, etc.)
+[^3]: fairway, rough, green, etc.
 
 > To Location (Scorer): General location from which the shot hit ended as recorded by the walking scorer
 >
