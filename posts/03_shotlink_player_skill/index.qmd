@@ -1,0 +1,81 @@
+---
+title: "Estimating Golfer Skill with Shot-Level Data"
+author: "Scott Flaska"
+date: "2023-04-10"
+draft: true
+categories: [shotlink, golf, r]
+image: ""
+format: html
+---
+
+```{r}
+#| output: false
+library(tidyverse)
+```
+
+```{r}
+shot_level <- readRDS("../02_shotlink_explore/shot_level.rds")
+cut_colors <- readRDS("../02_shotlink_explore/cut_colors.rds")
+
+shot_level %>% 
+  filter(player_last_name == 'Haas') %>% 
+  select(player) %>% 
+  distinct()
+
+strokes_remaining <- shot_level %>% 
+  group_by(player,
+           hole,
+           round) %>% 
+  arrange(player,
+          round,
+          hole,
+          shot) %>% 
+  mutate(strokes_rolling = cumsum(num_of_strokes)) %>% 
+  mutate(strokes_remaining = hole_score - strokes_rolling + 1) %>%
+  ungroup()
+
+strokes_remaining %>% 
+  filter(player == 21731,
+         round == 1,
+         hole %in% 1) %>% 
+  select(hole,
+         hole_score,
+         shot,
+         num_of_strokes,
+         strokes_remaining)
+
+strokes_remaining %>% 
+  filter(player_last_name == 'Mahan')
+  
+strokes_remaining %>% 
+  filter(player %in% c(24925, 24924, 24781)) %>%
+  ggplot(mapping = aes(x = log(distance_to_pin),
+                       y = strokes_remaining,
+                       color = player_last_name)) +
+  geom_jitter(height = 0.1,
+              width = 0) +
+  geom_smooth(method = loess,
+              se = F)
+  
+strokes_remaining %>% 
+  ggplot(mapping = aes(x = strokes_remaining,
+                       y = distance_to_pin/36 )) +
+  ggbeeswarm::geom_quasirandom() 
+
+strokes_remaining %>% 
+  ggplot(mapping = aes(x = distance_to_pin,
+                       y = distance_to_hole_after_the_shot)) +
+  geom_point()
+
+strokes_remaining %>% 
+  filter(player == 24924) %>% 
+  mutate(yards_to_pin = distance_to_pin/36) %>%
+  mutate(log_yards_to_pin = log(yards_to_pin)) %>% 
+  filter(log_yards_to_pin > 1) %>% 
+  # arrange(yards_to_pin) %>% 
+  # select(distance_to_pin, yards_to_pin) %>% 
+  # tail()
+  ggplot(mapping = aes(x = yards_to_pin,
+                       y = strokes_remaining)) +
+  geom_jitter(height = 0.1)
+```

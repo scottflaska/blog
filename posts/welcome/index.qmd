@@ -1,8 +1,0 @@
----
-title: "Welcome!"
-author: "Scott Flaska"
-date: "2023-04-02"
-categories: []
----
-
-Welcome to my blog! Hoping to post (somewhat) frequently on data science, sports analytics, and other topics.

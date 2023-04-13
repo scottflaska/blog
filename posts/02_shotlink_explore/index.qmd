@@ -1,0 +1,269 @@
+---
+title: "Exploring PGA Shotlink Data"
+author: "Scott Flaska"
+date: "2023-04-10"
+categories: [shotlink, golf, r, eda]
+image: "east_lake_overlay.png"
+format: html
+---
+
+Last year, I found some sample data while reading about PGA Shotlink[^1]. I decided to put together a series of posts using this data. This first post will cover some simple data cleaning and visualization.
+
+[^1]: The data was available [here](https://www.pgatour.com/stats/shotlinkintelligence/overview.html), but it looks like it's been moved.
+
+The sample contains 4 delimited text files: event-level, hole-level, round-level, and shot-level. I'll focus on the shot-level data in this post.
+
+```{r}
+#| output: false
+library(tidyverse)
+```
+
+```{r}
+shot_level <- read.delim(file ='shotlink_sample/StrokeLevelTOURChamp.txt')
+str(shot_level)
+```
+
+This table has a ton of interesting fields to explore, but first I want to clean up the column names - the [`janitor`](https://sfirke.github.io/janitor/) package makes this really easy.
+
+```{r}
+shot_level_clean <- shot_level %>% 
+  janitor::clean_names() %>% 
+  rename(num_of_strokes = x_of_strokes,
+         first_putt_flag = x1st_putt_flag)
+
+shot_level_clean %>% 
+  colnames() %>% 
+  head(10) 
+```
+
+Next, I'd like to get a feel for the scope of the data.
+
+```{r}
+#How many tournaments/rounds?
+shot_level_clean %>% 
+  select(year, tournament_name, round) %>% 
+  distinct()
+
+
+```
+
+```{r}
+#How many players?
+shot_level_clean %>% 
+  select(player,
+         player_first_name,
+         player_last_name) %>% 
+  distinct()
+```
+
+```{r}
+#Player scores?
+shot_level_clean %>% 
+  group_by(player,
+           player_first_name,
+           player_last_name,
+           round) %>% 
+  summarize(shots = n(),
+            .groups = "keep") %>% 
+  ungroup() %>% 
+  mutate(round = paste0("round_",round)) %>% 
+  pivot_wider(names_from = round,
+              values_from = shots) %>% 
+  as.data.frame() %>% 
+  mutate(final_score = round_1 + round_2 + round_3 + round_4) %>% 
+  arrange(final_score) %>% 
+  select(-player, -player_first_name) %>% 
+  head()
+  
+```
+
+At first glance, the data looks straightforward: one row for every stroke in the [2011 FedEx Cup Playoffs](https://en.wikipedia.org/wiki/2011_FedEx_Cup_Playoffs), with Hunter Mahan defeating the field of 30 with a final score of 272. However, a quick Google search shows that Bill Haas actually won the tournament in a playoff over Hunter Mahan. Referencing the [docs](https://github.com/scottflaska/blog/tree/development/posts/shotlink_explore/shotlink_sample), the number of strokes assessed actually comes from the `# of Strokes`[^2] column (renamed to `num_of_strokes` above) to account for drops and penalties. Adjusting the code above:
+
+[^2]: `# of Strokes` (1 digit numeric): The number of strokes assessed for this shot. In most cases, this will be '1', but it may be '0' for a drop or '2' for a 2-stroke penalty.
+
+```{r}
+shot_level_clean %>% 
+  group_by(player,
+           player_first_name,
+           player_last_name,
+           round) %>% 
+  summarize(shots = sum(num_of_strokes),
+            .groups = "keep") %>% 
+  ungroup() %>% 
+  mutate(round = paste0("round_",round)) %>% 
+  pivot_wider(names_from = round,
+              values_from = shots) %>% 
+  as.data.frame() %>% 
+  mutate(final_score = round_1 + round_2 + round_3 + round_4) %>% 
+  arrange(final_score) %>% 
+  select(-player, -player_first_name) %>% 
+  head()
+```
+
+These scores match the round-level scores on the Wikipedia page, which is good enough for me.
+
+Next - I want to take a look at the x/y/z coordinate data. The docs give definitions for these fields:
+
+> The X coordinate in an X/Y/Z grid system used by lasers to pinpoint the ball when the shot ends. The value is zeros for the shot that finishes in the hole. The numbers in the grid system represent feet.
+>
+> The Y coordinate in an X/Y/Z grid system used by lasers to pinpoint the ball when the shot ends. The value is zeros for the shot that finishes in the hole. The numbers in the grid system represent feet.
+>
+> The Z coordinate in an X/Y/Z grid system used by lasers to pinpoint the ball when the shot ends. The value is zeros for the shot that finishes in the hole. The numbers in the grid system represent feet, and 'Z' is the vertical component of the position.
+
+The shot that finishes in the hole will get 0 values, but these definitions don't indicate whether the coordinates are relative to each hole or the overall course. Plotting the shots should help clear this up. Additionally, I need to convert the coordinate columns from `character` to `numeric` .
+
+```{r}
+#| output: false
+library(ggplot2)
+```
+
+```{r}
+shot_level_clean %>% 
+  mutate(x = str_replace_all(string = x_coordinate,
+                             pattern = ",",
+                             replacement = "")) %>%
+  mutate(y = str_replace_all(string = y_coordinate,
+                             pattern = ",",
+                             replacement = "")) %>% 
+  mutate(z = str_replace_all(string = z_coordinate,
+                             pattern = ",",
+                             replacement = "")) %>% 
+  mutate(x = as.numeric(x),
+         y = as.numeric(y),
+         z = as.numeric(z)) %>% 
+  ggplot(mapping = aes(x = x,
+                       y = y)) +
+  geom_point()
+```
+
+The non-zero shot coordinates look like a golf course, so I think it makes sense to set the 0 values to `NA` since the coordinates to not appear to match the grid system.
+
+```{r}
+shot_level_clean_coords <- shot_level_clean %>% 
+  mutate(x = str_replace_all(string = x_coordinate,
+                             pattern = ",",
+                             replacement = "")) %>%
+  mutate(y = str_replace_all(string = y_coordinate,
+                             pattern = ",",
+                             replacement = "")) %>% 
+  mutate(z = str_replace_all(string = z_coordinate,
+                             pattern = ",",
+                             replacement = "")) %>% 
+  mutate(x = as.numeric(x),
+         y = as.numeric(y),
+         z = as.numeric(z)) %>% 
+  mutate(x = ifelse(x == 0,NA,x),
+         y = ifelse(y == 0,NA,y),
+         z = ifelse(z == 0,NA,z)) %>% 
+  select(-x_coordinate,
+         -y_coordinate,
+         -z_coordinate)
+
+shot_level_clean_coords %>% 
+  filter(!is.na(x)) %>% 
+  mutate(hole = factor(hole, ordered = T)) %>%
+  ggplot(mapping = aes(x = x,
+                       y = y,
+                       color = hole)) +
+  geom_point() +
+  coord_equal() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.background = element_blank())
+```
+
+Definitely looks like a golf course, especially when you overlay it on top of the Google Maps view of East Lake Golf Club in Atlanta:
+
+![](east_lake_overlay.png)
+
+Next I'd like to take a look at the cut[^3] information for each shot. The table has two columns with this information:
+
+[^3]: fairway, rough, green, etc.
+
+> To Location (Scorer): General location from which the shot hit ended as recorded by the walking scorer
+>
+> To Location (Laser): Enhanced location from which the shot hit ended as recorded by a laser device which tracks ball position using coordinates on a course map
+
+```{r}
+shot_level_clean_coords %>% 
+  filter(!is.na(x)) %>% 
+  group_by(to_location_laser,
+           to_location_scorer) %>%
+  summarize(rows = n(),
+            .groups = "keep") %>% 
+  as.data.frame() %>% 
+  arrange(desc(rows))
+```
+
+The columns seem to match up pretty well, but I'd like to consolidate them into a more general \`to_location_cut\` column.
+
+```{r}
+shot_level_clean_coords_cut <- shot_level_clean_coords %>% 
+  mutate(to_location_cut = case_when(to_location_scorer %in% c('Fairway','Fringe') ~ 'fairway',
+                                     to_location_scorer %in% c('Fairway Bunker','Green Side Bunker') ~ 'bunker',
+                                     to_location_scorer %in% c('Intermediate Rough','Primary Rough') ~ 'rough',
+                                     to_location_scorer == 'Green' ~ 'green',
+                                     to_location_scorer == 'Water' ~ 'water',
+                                     
+                                     is.na(x) ~ 'hole',
+                                     T ~ 'other'))
+
+shot_level_clean_coords_cut %>% 
+  filter(!is.na(x)) %>% 
+  group_by(to_location_laser,
+           to_location_scorer,
+           to_location_cut) %>%
+  summarize(rows = n(),
+            .groups = "keep") %>% 
+  as.data.frame() %>% 
+  arrange(desc(rows))
+```
+
+Next - I want to plot \`to_location_cut\` to see how it looks.
+
+```{r}
+cut_colors = c('bunker'='tan',
+               'fairway'='#4CBB17',
+               'green'='#90EE90',
+               'rough'='#355E3B',
+               'other'='red',
+               'water'='lightblue')
+
+shot_level_clean_coords_cut %>% 
+  filter(!is.na(x)) %>% 
+  mutate(hole = factor(hole, ordered = T)) %>%
+  ggplot(mapping = aes(x = x,
+                       y = y)) +
+  geom_point(mapping = aes(color = to_location_cut),
+             size = 1) +
+  coord_equal() +
+  scale_color_manual(values = cut_colors) +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank())
+```
+
+```{r}
+shot_level_clean_coords_cut %>% 
+  filter(!is.na(x)) %>% 
+  filter(hole == 1) %>% 
+  mutate(hole = factor(hole, ordered = T)) %>%
+  ggplot(mapping = aes(x = x,
+                       y = y)) +
+  geom_point(mapping = aes(color = to_location_cut),
+             size = 2) +
+  coord_equal() +
+  scale_color_manual(values = cut_colors) +
+  labs(title = "1st Hole") +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank())
+```
+
+```{r}
+saveRDS(object = shot_level_clean_coords_cut, file = "shot_level.rds")
+saveRDS(object = cut_colors, file = "cut_colors.rds")
+```
