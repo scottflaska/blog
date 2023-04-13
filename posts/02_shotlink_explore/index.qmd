@@ -263,7 +263,37 @@ shot_level_clean_coords_cut %>%
         panel.grid = element_blank())
 ```
 
+Lastly, I'd like to add columns that indicate how many strokes are remaining for the player on the hole, since it does not appear like they are in the current data set.
+
 ```{r}
-saveRDS(object = shot_level_clean_coords_cut, file = "shot_level.rds")
+strokes_remaining <- shot_level_clean_coords_cut %>% 
+  group_by(player,
+           hole,
+           round) %>% 
+  arrange(player,
+          round,
+          hole,
+          shot) %>% 
+  mutate(strokes_rolling = cumsum(num_of_strokes)) %>% 
+  mutate(strokes_remaining_before_shot = hole_score - strokes_rolling + 1,
+         strokes_remaining_after_shot = hole_score - strokes_rolling) %>%
+  ungroup() %>% 
+  mutate(yards_out_after_shot = distance_to_hole_after_the_shot/36,
+         yards_out_before_shot = distance_to_pin/36) %>% 
+  as.data.frame()
+
+strokes_remaining %>% 
+  filter(hole == 1,
+         round == 1,
+         player == 24924) %>% 
+  select(shot,
+         strokes_rem_before = strokes_remaining_before_shot,
+         yards_out_before = yards_out_before_shot,
+         strokes_rem_after = strokes_remaining_after_shot,
+         yards_out_after = yards_out_after_shot) 
+```
+
+```{r}
+saveRDS(object = strokes_remaining, file = "shot_level.rds")
 saveRDS(object = cut_colors, file = "cut_colors.rds")
 ```
