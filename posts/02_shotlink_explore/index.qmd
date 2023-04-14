@@ -291,6 +291,25 @@ strokes_remaining %>%
          yards_out_before = yards_out_before_shot,
          strokes_rem_after = strokes_remaining_after_shot,
          yards_out_after = yards_out_after_shot) 
+
+```
+
+```{r}
+strokes_remaining %>% 
+  filter(!is.na(x)) %>% 
+  filter(hole == 1) %>% 
+  mutate(strokes_remaining_after_shot = factor(strokes_remaining_after_shot, 
+                                               ordered = T)) %>%
+  ggplot(mapping = aes(x = x,
+                       y = y,
+                       color = strokes_remaining_after_shot)) +
+  geom_point(size = 3) +
+  coord_equal() +
+  labs(title = "1st Hole") +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank())
 ```
 
 ```{r}
