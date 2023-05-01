@@ -463,11 +463,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 <p>Definitely looks like a golf course, especially when you overlay it on top of the Google Maps view of East Lake Golf Club in Atlanta:</p>
 <p><img src="east_lake_overlay.png" class="img-fluid"></p>
-<p>Next I’d like to take a look at the cut<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> information for each shot. The table has two columns with this information:</p>
+<p>Next I’d like to take a look at the cut<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> information for each shot. The table has 4 columns with this information:</p>
 <blockquote class="blockquote">
 <p>To Location (Scorer): General location from which the shot hit ended as recorded by the walking scorer</p>
 <p>To Location (Laser): Enhanced location from which the shot hit ended as recorded by a laser device which tracks ball position using coordinates on a course map</p>
+<p>From Location (Scorer): General location from which the shot began as recorded by the walking scorer</p>
+<p>From Location (Laser): Enhanced location from which the shot began as recorded by a laser device which tracks ball position using coordinates on a course map</p>
 </blockquote>
+<p>The x/y coordinate data matches the “to location” - so I’ll focus on those columns for now.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>shot_level_clean_coords <span class="sc">%&gt;%</span> </span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(x)) <span class="sc">%&gt;%</span> </span>
@@ -503,75 +506,77 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 22                        Unknown       Dirt Outline    1</code></pre>
 </div>
 </div>
-<p>The columns seem to match up pretty well, but I’d like to consolidate them into a more general `to_location_cut` column.</p>
+<p>The columns seem to match up pretty well, but I’d like to consolidate them into more general <code>to_location</code> column.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>shot_level_clean_coords_cut <span class="ot">&lt;-</span> shot_level_clean_coords <span class="sc">%&gt;%</span> </span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">to_location_cut =</span> <span class="fu">case_when</span>(to_location_scorer <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'Fairway'</span>,<span class="st">'Fringe'</span>) <span class="sc">~</span> <span class="st">'fairway'</span>,</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'Fairway Bunker'</span>,<span class="st">'Green Side Bunker'</span>) <span class="sc">~</span> <span class="st">'bunker'</span>,</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'Intermediate Rough'</span>,<span class="st">'Primary Rough'</span>) <span class="sc">~</span> <span class="st">'rough'</span>,</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">==</span> <span class="st">'Green'</span> <span class="sc">~</span> <span class="st">'green'</span>,</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">==</span> <span class="st">'Water'</span> <span class="sc">~</span> <span class="st">'water'</span>,</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">to_location =</span> <span class="fu">case_when</span>(to_location_scorer <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'Fairway'</span>,<span class="st">'Fringe'</span>) <span class="sc">~</span> <span class="st">'Fairway'</span>,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'Fairway Bunker'</span>,<span class="st">'Green Side Bunker'</span>) <span class="sc">~</span> <span class="st">'Bunker'</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'Intermediate Rough'</span>,<span class="st">'Primary Rough'</span>) <span class="sc">~</span> <span class="st">'Rough'</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">==</span> <span class="st">'Green'</span> <span class="sc">~</span> <span class="st">'Green'</span>,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">==</span> <span class="st">'Water'</span> <span class="sc">~</span> <span class="st">'Water'</span>,</span>
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                                     </span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>                                     <span class="fu">is.na</span>(x) <span class="sc">~</span> <span class="st">'hole'</span>,</span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>                                     T <span class="sc">~</span> <span class="st">'other'</span>))</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>                                     <span class="fu">is.na</span>(x) <span class="sc">~</span> <span class="st">'Hole'</span>,</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>                                     T <span class="sc">~</span> <span class="st">'Other'</span>))</span>
 <span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>shot_level_clean_coords_cut <span class="sc">%&gt;%</span> </span>
 <span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(x)) <span class="sc">%&gt;%</span> </span>
 <span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(to_location_laser,</span>
 <span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>           to_location_scorer,</span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>           to_location_cut) <span class="sc">%&gt;%</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>           to_location) <span class="sc">%&gt;%</span></span>
 <span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">rows =</span> <span class="fu">n</span>(),</span>
 <span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>            <span class="at">.groups =</span> <span class="st">"keep"</span>) <span class="sc">%&gt;%</span> </span>
 <span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span> </span>
 <span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(rows))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>                to_location_laser to_location_scorer to_location_cut rows
-1                         Unknown              Green           green 3548
-2                    Left Fairway            Fairway         fairway  578
-3                   Right Fairway            Fairway         fairway  550
-4                      Left Rough      Primary Rough           rough  436
-5                     Right Rough      Primary Rough           rough  401
-6              Right Intermediate Intermediate Rough           rough  145
-7               Left Intermediate Intermediate Rough           rough  112
-8                         Unknown     Fairway Bunker          bunker   92
-9         Right Green Side Bunker  Green Side Bunker          bunker   77
-10  Right Front Green Side Bunker  Green Side Bunker          bunker   66
-11   Front Left Green Side Bunker  Green Side Bunker          bunker   60
-12         Left Green Side Bunker  Green Side Bunker          bunker   47
-13 Front Center Green Side Bunker  Green Side Bunker          bunker   34
-14                        Unknown       Tree Outline           other   24
-15                        Unknown              Water           water   23
-16                        Unknown            Unknown           other   20
-17                        Unknown         Water Drop           other   13
-18    Left Rear Green Side Bunker  Green Side Bunker          bunker    3
-19                   Left Fairway             Fringe         fairway    2
-20                  Right Fairway             Fringe         fairway    2
-21   Right Rear Green Side Bunker  Green Side Bunker          bunker    1
-22                        Unknown       Dirt Outline           other    1</code></pre>
+<pre><code>                to_location_laser to_location_scorer to_location rows
+1                         Unknown              Green       Green 3548
+2                    Left Fairway            Fairway     Fairway  578
+3                   Right Fairway            Fairway     Fairway  550
+4                      Left Rough      Primary Rough       Rough  436
+5                     Right Rough      Primary Rough       Rough  401
+6              Right Intermediate Intermediate Rough       Rough  145
+7               Left Intermediate Intermediate Rough       Rough  112
+8                         Unknown     Fairway Bunker      Bunker   92
+9         Right Green Side Bunker  Green Side Bunker      Bunker   77
+10  Right Front Green Side Bunker  Green Side Bunker      Bunker   66
+11   Front Left Green Side Bunker  Green Side Bunker      Bunker   60
+12         Left Green Side Bunker  Green Side Bunker      Bunker   47
+13 Front Center Green Side Bunker  Green Side Bunker      Bunker   34
+14                        Unknown       Tree Outline       Other   24
+15                        Unknown              Water       Water   23
+16                        Unknown            Unknown       Other   20
+17                        Unknown         Water Drop       Other   13
+18    Left Rear Green Side Bunker  Green Side Bunker      Bunker    3
+19                   Left Fairway             Fringe     Fairway    2
+20                  Right Fairway             Fringe     Fairway    2
+21   Right Rear Green Side Bunker  Green Side Bunker      Bunker    1
+22                        Unknown       Dirt Outline       Other    1</code></pre>
 </div>
 </div>
-<p>Next - I want to plot `to_location_cut` to see how it looks.</p>
+<p>Next - I want to plot `to_location` to see how it looks.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>cut_colors <span class="ot">=</span> <span class="fu">c</span>(<span class="st">'bunker'</span><span class="ot">=</span><span class="st">'tan'</span>,</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>               <span class="st">'fairway'</span><span class="ot">=</span><span class="st">'#4CBB17'</span>,</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>               <span class="st">'green'</span><span class="ot">=</span><span class="st">'#90EE90'</span>,</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>               <span class="st">'rough'</span><span class="ot">=</span><span class="st">'#355E3B'</span>,</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>               <span class="st">'other'</span><span class="ot">=</span><span class="st">'red'</span>,</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>               <span class="st">'water'</span><span class="ot">=</span><span class="st">'lightblue'</span>)</span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>shot_level_clean_coords_cut <span class="sc">%&gt;%</span> </span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(x)) <span class="sc">%&gt;%</span> </span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">hole =</span> <span class="fu">factor</span>(hole, <span class="at">ordered =</span> T)) <span class="sc">%&gt;%</span></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> x,</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>                       <span class="at">y =</span> y)) <span class="sc">+</span></span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">color =</span> to_location_cut),</span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>() <span class="sc">+</span></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> cut_colors) <span class="sc">+</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid =</span> <span class="fu">element_blank</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>cut_colors <span class="ot">=</span> <span class="fu">c</span>(<span class="st">'Bunker'</span><span class="ot">=</span><span class="st">'tan'</span>,</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>               <span class="st">'Fairway'</span><span class="ot">=</span><span class="st">'#4CBB17'</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>               <span class="st">'Tee Box'</span><span class="ot">=</span><span class="st">'#4CBB17'</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>               <span class="st">'Green'</span><span class="ot">=</span><span class="st">'#90EE90'</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>               <span class="st">'Rough'</span><span class="ot">=</span><span class="st">'#355E3B'</span>,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>               <span class="st">'Other'</span><span class="ot">=</span><span class="st">'darkgray'</span>,</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>               <span class="st">'Hole'</span><span class="ot">=</span><span class="st">'black'</span>,</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>               <span class="st">'Water'</span><span class="ot">=</span><span class="st">'lightblue'</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>shot_level_clean_coords_cut <span class="sc">%&gt;%</span> </span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(x)) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">hole =</span> <span class="fu">factor</span>(hole, <span class="at">ordered =</span> T)) <span class="sc">%&gt;%</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> x,</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>                       <span class="at">y =</span> y)) <span class="sc">+</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">color =</span> to_location),</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>() <span class="sc">+</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> cut_colors) <span class="sc">+</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid =</span> <span class="fu">element_blank</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="index_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid" width="672"></p>
 </div>
@@ -583,7 +588,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">hole =</span> <span class="fu">factor</span>(hole, <span class="at">ordered =</span> T)) <span class="sc">%&gt;%</span></span>
 <span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> x,</span>
 <span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">y =</span> y)) <span class="sc">+</span></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">color =</span> to_location_cut),</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">color =</span> to_location),</span>
 <span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
 <span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>() <span class="sc">+</span></span>
 <span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> cut_colors) <span class="sc">+</span></span>
