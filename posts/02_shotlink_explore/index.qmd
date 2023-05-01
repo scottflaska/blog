@@ -1,13 +1,13 @@
 ---
 title: "Exploring PGA Shotlink Data"
 author: "Scott Flaska"
-date: "2023-04-10"
+date: "2023-05-01"
 categories: [shotlink, golf, r, eda]
 image: "east_lake_overlay.png"
 format: html
 ---
 
-Last year, I found some sample data while reading about PGA Shotlink[^1]. I decided to put together a series of posts using this data. This first post will cover some simple data cleaning and visualization.
+Last year I found some sample data while reading about PGA Shotlink[^1]. I decided to put together a series of posts using this data. This first post will cover some simple data cleaning and visualization.
 
 [^1]: The data was available [here](https://www.pgatour.com/stats/shotlinkintelligence/overview.html), but it looks like it's been moved.
 
@@ -20,7 +20,7 @@ library(tidyverse)
 
 ```{r}
 shot_level <- read.delim(file ='shotlink_sample/StrokeLevelTOURChamp.txt')
-str(shot_level)
+str(shot_level, vec.len = 1)
 ```
 
 This table has a ton of interesting fields to explore, but first I want to clean up the column names - the [`janitor`](https://sfirke.github.io/janitor/) package makes this really easy.
@@ -177,13 +177,19 @@ Definitely looks like a golf course, especially when you overlay it on top of th
 
 ![](east_lake_overlay.png)
 
-Next I'd like to take a look at the cut[^3] information for each shot. The table has two columns with this information:
+Next I'd like to take a look at the cut[^3] information for each shot. The table has 4 columns with this information:
 
 [^3]: fairway, rough, green, etc.
 
 > To Location (Scorer): General location from which the shot hit ended as recorded by the walking scorer
 >
 > To Location (Laser): Enhanced location from which the shot hit ended as recorded by a laser device which tracks ball position using coordinates on a course map
+>
+> From Location (Scorer): General location from which the shot began as recorded by the walking scorer
+>
+> From Location (Laser): Enhanced location from which the shot began as recorded by a laser device which tracks ball position using coordinates on a course map
+
+The x/y coordinate data matches the "to location" - so I'll focus on those columns for now.
 
 ```{r}
 shot_level_clean_coords %>% 
@@ -196,46 +202,47 @@ shot_level_clean_coords %>%
   arrange(desc(rows))
 ```
 
-The columns seem to match up pretty well, but I'd like to consolidate them into a more general \`to_location_cut\` column.
+The columns seem to match up pretty well, but I'd like to consolidate them into more general `to_location` column.
 
 ```{r}
 shot_level_clean_coords_cut <- shot_level_clean_coords %>% 
-  mutate(to_location_cut = case_when(to_location_scorer %in% c('Fairway','Fringe') ~ 'fairway',
-                                     to_location_scorer %in% c('Fairway Bunker','Green Side Bunker') ~ 'bunker',
-                                     to_location_scorer %in% c('Intermediate Rough','Primary Rough') ~ 'rough',
-                                     to_location_scorer == 'Green' ~ 'green',
-                                     to_location_scorer == 'Water' ~ 'water',
-                                     
-                                     is.na(x) ~ 'hole',
-                                     T ~ 'other'))
+  mutate(to_location = case_when(to_location_scorer %in% c('Fairway','Fringe') ~ 'Fairway',
+                                     to_location_scorer %in% c('Fairway Bunker','Green Side Bunker') ~ 'Bunker',
+                                     to_location_scorer %in% c('Intermediate Rough','Primary Rough') ~ 'Rough',
+                                     to_location_scorer == 'Green' ~ 'Green',
+                                     to_location_scorer == 'Water' ~ 'Water',
+                                     is.na(x) ~ 'Hole',
+                                     T ~ 'Other'))
 
 shot_level_clean_coords_cut %>% 
   filter(!is.na(x)) %>% 
   group_by(to_location_laser,
            to_location_scorer,
-           to_location_cut) %>%
+           to_location) %>%
   summarize(rows = n(),
             .groups = "keep") %>% 
   as.data.frame() %>% 
   arrange(desc(rows))
 ```
 
-Next - I want to plot \`to_location_cut\` to see how it looks.
+Next - I want to plot `to_location` to see how it looks.
 
 ```{r}
-cut_colors = c('bunker'='tan',
-               'fairway'='#4CBB17',
-               'green'='#90EE90',
-               'rough'='#355E3B',
-               'other'='red',
-               'water'='lightblue')
+cut_colors = c('Bunker'='tan',
+               'Fairway'='#4CBB17',
+               'Tee Box'='#4CBB17',
+               'Green'='#90EE90',
+               'Rough'='#355E3B',
+               'Other'='darkgray',
+               'Hole'='black',
+               'Water'='lightblue')
 
 shot_level_clean_coords_cut %>% 
   filter(!is.na(x)) %>% 
   mutate(hole = factor(hole, ordered = T)) %>%
   ggplot(mapping = aes(x = x,
                        y = y)) +
-  geom_point(mapping = aes(color = to_location_cut),
+  geom_point(mapping = aes(color = to_location),
              size = 1) +
   coord_equal() +
   scale_color_manual(values = cut_colors) +
@@ -252,7 +259,7 @@ shot_level_clean_coords_cut %>%
   mutate(hole = factor(hole, ordered = T)) %>%
   ggplot(mapping = aes(x = x,
                        y = y)) +
-  geom_point(mapping = aes(color = to_location_cut),
+  geom_point(mapping = aes(color = to_location),
              size = 2) +
   coord_equal() +
   scale_color_manual(values = cut_colors) +
@@ -263,7 +270,7 @@ shot_level_clean_coords_cut %>%
         panel.grid = element_blank())
 ```
 
-Lastly, I'd like to add columns that indicate how many strokes are remaining for the player on the hole, since it does not appear like they are in the current data set.
+Lastly, I'd like to add columns that indicate how many strokes are remaining for the player before/after each shot, since it does not appear that they are in the current data set.
 
 ```{r}
 strokes_remaining <- shot_level_clean_coords_cut %>% 
@@ -291,6 +298,25 @@ strokes_remaining %>%
          yards_out_before = yards_out_before_shot,
          strokes_rem_after = strokes_remaining_after_shot,
          yards_out_after = yards_out_after_shot) 
+
+```
+
+```{r}
+strokes_remaining %>% 
+  filter(!is.na(x)) %>% 
+  filter(hole == 1) %>% 
+  mutate(strokes_remaining_after_shot = factor(strokes_remaining_after_shot, 
+                                               ordered = T)) %>%
+  ggplot(mapping = aes(x = x,
+                       y = y,
+                       color = strokes_remaining_after_shot)) +
+  geom_point(size = 3) +
+  coord_equal() +
+  labs(title = "1st Hole") +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank())
 ```
 
 ```{r}
