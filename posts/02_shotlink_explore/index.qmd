@@ -1,13 +1,13 @@
 ---
 title: "Exploring PGA Shotlink Data"
 author: "Scott Flaska"
-date: "2023-04-10"
+date: "2023-05-01"
 categories: [shotlink, golf, r, eda]
 image: "east_lake_overlay.png"
 format: html
 ---
 
-Last year, I found some sample data while reading about PGA Shotlink[^1]. I decided to put together a series of posts using this data. This first post will cover some simple data cleaning and visualization.
+Last year I found some sample data while reading about PGA Shotlink[^1]. I decided to put together a series of posts using this data. This first post will cover some simple data cleaning and visualization.
 
 [^1]: The data was available [here](https://www.pgatour.com/stats/shotlinkintelligence/overview.html), but it looks like it's been moved.
 
@@ -20,7 +20,7 @@ library(tidyverse)
 
 ```{r}
 shot_level <- read.delim(file ='shotlink_sample/StrokeLevelTOURChamp.txt')
-str(shot_level)
+str(shot_level, vec.len = 1)
 ```
 
 This table has a ton of interesting fields to explore, but first I want to clean up the column names - the [`janitor`](https://sfirke.github.io/janitor/) package makes this really easy.
@@ -211,7 +211,6 @@ shot_level_clean_coords_cut <- shot_level_clean_coords %>%
                                      to_location_scorer %in% c('Intermediate Rough','Primary Rough') ~ 'Rough',
                                      to_location_scorer == 'Green' ~ 'Green',
                                      to_location_scorer == 'Water' ~ 'Water',
-                                     
                                      is.na(x) ~ 'Hole',
                                      T ~ 'Other'))
 
@@ -226,7 +225,7 @@ shot_level_clean_coords_cut %>%
   arrange(desc(rows))
 ```
 
-Next - I want to plot \`to_location\` to see how it looks.
+Next - I want to plot `to_location` to see how it looks.
 
 ```{r}
 cut_colors = c('Bunker'='tan',
@@ -271,7 +270,7 @@ shot_level_clean_coords_cut %>%
         panel.grid = element_blank())
 ```
 
-Lastly, I'd like to add columns that indicate how many strokes are remaining for the player on the hole, since it does not appear like they are in the current data set.
+Lastly, I'd like to add columns that indicate how many strokes are remaining for the player before/after each shot, since it does not appear that they are in the current data set.
 
 ```{r}
 strokes_remaining <- shot_level_clean_coords_cut %>% 
