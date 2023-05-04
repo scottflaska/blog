@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Blog",
     "section": "",
-    "text": "Deploying R Projects in Docker\n\n\n\n\n\n\n\nr\n\n\ndocker\n\n\ndevops\n\n\n\n\n\n\n\n\n\n\n\nMay 2, 2023\n\n\nScott Flaska\n\n\n\n\n\n\n  \n\n\n\n\nExploring PGA Shotlink Data\n\n\n\n\n\n\n\nshotlink\n\n\ngolf\n\n\nr\n\n\neda\n\n\n\n\n\n\n\n\n\n\n\nMay 1, 2023\n\n\nScott Flaska\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome!\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nApr 30, 2023\n\n\nScott Flaska\n\n\n\n\n\n\nNo matching items"
+    "text": "Deploying R Projects in Docker\n\n\n\n\n\n\n\nr\n\n\ndocker\n\n\ndevops\n\n\n\n\n\n\n\n\n\n\n\nMay 4, 2023\n\n\nScott Flaska\n\n\n\n\n\n\n  \n\n\n\n\nExploring PGA Shotlink Data\n\n\n\n\n\n\n\nshotlink\n\n\ngolf\n\n\nr\n\n\neda\n\n\n\n\n\n\n\n\n\n\n\nMay 1, 2023\n\n\nScott Flaska\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome!\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nApr 30, 2023\n\n\nScott Flaska\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
@@ -74,6 +74,6 @@
     "href": "posts/03_rocker/index.html",
     "title": "Deploying R Projects in Docker",
     "section": "",
-    "text": "Managing data science projects is hard.\n\n\n\ndockerfile\n\nscott\n\n\n\n\n\ncompose.yml\n\nscott\n\n\n\ndocker-compose -f compose.yml up -d\ndocker-compose -f compose.yml down"
+    "text": "Managing data science projects is hard.\n\n\ndockerfile\n\nFROM rocker/rstudio:4.2.2\n\n#set up project directory\nRUN mkdir -m 777 /home/rstudio/blog_example\n\n#install R packages\nRUN R -e 'install.packages(pkgs = c(\"plumber\"))'\n\n\n\ncompose.yml\n\nversion: \"3.9\"\n\nservices:\n  blog_example:\n    build: .\n    image: blog_example\n    container_name: blog_example\n    environment:\n      - PASSWORD=blog\n      - ROOT=true\n    ports:\n      - \"8802:8787\"\n    restart: always\n    volumes:\n      - .:/home/rstudio/blog_example\n\ndocker-compose -f compose.yml up -d\ndocker-compose -f compose.yml down"
   }
 ]

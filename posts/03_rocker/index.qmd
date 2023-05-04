@@ -1,26 +1,23 @@
 ---
 title: "Deploying R Projects in Docker"
 author: "Scott Flaska"
-date: "2023-05-02"
+date: "2023-05-04"
 categories: [r, docker, devops]
 image: "docker.png"
 format: html
+filters: 
+  - include-code-files
 ---
 
 Managing data science projects is hard.
 
-```{r filename="dockerfile"}
-#| eval: false
-scott
+``` {.dockerfile include="dockerfile" filename="dockerfile"}
 ```
 
-```{r filename="compose.yml"}
-#| eval: false
-scott
+``` {.yml include="compose.yml" filename="compose.yml"}
 ```
 
-```{bash}
-#| eval: false
+``` bash
 docker-compose -f compose.yml up -d
 docker-compose -f compose.yml down
 ```
