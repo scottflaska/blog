@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/03_rocker/index.html",
       "/posts/02_shotlink_explore/index.html",
       "/posts/01_welcome/index.html"
     ]

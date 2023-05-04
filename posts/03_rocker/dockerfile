@@ -1,0 +1,7 @@
+FROM rocker/rstudio:4.2.2
+
+#set up project directory
+RUN mkdir -m 777 /home/rstudio/blog_example
+
+#install R packages
+RUN R -e 'install.packages(pkgs = c("plumber"))'
