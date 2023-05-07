@@ -1,0 +1,14 @@
+{
+  "hash": "1d2983ff4f85ec8acaa149e05873aa9d",
+  "result": {
+    "markdown": "---\ntitle: \"Deploying R Projects in Docker\"\nauthor: \"Scott Flaska\"\ndate: \"2023-05-02\"\ncategories: [r, docker, devops]\nimage: \"docker.png\"\nformat: html\nfilters: \n  - include-code-files\n---\n\n\nManaging data science projects is hard.\n\n\n\n```{.dockerfile include=\"dockerfile\" filename=\"dockerfile\"}\n```\n\n\n```{.yml include=\"compose.yml\" filename=\"compose.yml\"}\n```\n\n\n\n\n\n::: {.cell filename='dockerfile'}\n\n```{.r .cell-code}\nscott\n```\n:::\n\n::: {.cell filename='compose.yml'}\n\n```{.r .cell-code}\nscott\n```\n:::\n\n::: {.cell}\n\n```{.bash .cell-code}\ndocker-compose -f compose.yml up -d\ndocker-compose -f compose.yml down\n```\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

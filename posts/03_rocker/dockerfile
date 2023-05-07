@@ -1,0 +1,12 @@
+FROM rocker/rstudio:4.2.2
+
+#install shiny server
+RUN /rocker_scripts/install_shiny_server.sh
+
+#add shiny server config
+COPY /R/shiny_server.conf /etc/shiny-server/shiny-server.conf
+
+#install R packages
+RUN R -e 'install.packages(pkgs = c("markdown"))'
+RUN R -e 'install.packages(pkgs = c("rmarkdown"))'
+RUN R -e 'install.packages(pkgs = c("plumber"))'

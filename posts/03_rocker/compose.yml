@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  blog_example:
+    build: .
+    image: blog_example
+    container_name: blog_example
+    environment:
+      - PASSWORD=blog
+      - ROOT=true
+    ports:
+      - "8803:8787"
+      - "8003:8000"
+      - "3983:3838"
+    restart: always
+    volumes:
+      - ./R:/home/rstudio/R
