@@ -9,7 +9,9 @@ services:
       - PASSWORD=blog
       - ROOT=true
     ports:
-      - "8802:8787"
+      - "8803:8787"
+      - "8003:8000"
+      - "3983:3838"
     restart: always
     volumes:
-      - .:/home/rstudio/blog_example
+      - ./R:/home/rstudio/R

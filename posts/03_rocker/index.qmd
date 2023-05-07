@@ -1,9 +1,9 @@
 ---
 title: "Deploying R Projects in Docker"
 author: "Scott Flaska"
-date: "2023-05-04"
+date: "2023-05-07"
 categories: [r, docker, devops]
-image: "docker.png"
+image: "images/docker.png"
 format: html
 filters: 
   - include-code-files
@@ -18,6 +18,10 @@ Managing data science projects is hard.
 ```
 
 ``` bash
-docker-compose -f compose.yml up -d
+docker-compose -f compose.yml up --build -d
 docker-compose -f compose.yml down
 ```
+
+<http://localhost:8003/__docs__/#/>
+
+![](images/api.PNG)
