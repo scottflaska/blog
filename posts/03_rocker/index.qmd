@@ -71,7 +71,6 @@ As noted above, the Dockerfile contains a command to install Shiny Server from a
 
 Any Shiny apps added in this directory will be exposed at <http://localhost:3983/>. You can also add interactive R Markdown reports as Shiny apps.
 
-
 # Plumber APIs
 
 You can also host [`plumber`](https://www.rplumber.io/) APIs to make your R functions available as API endpoints. This is particularly helpful for making trained ML models accessible to other applications. First, create a `plumber.R` API script[^1]. Next add a script that runs your new API on port 8000 (mapped to 8003 in `compose.yml`).
@@ -82,14 +81,13 @@ You can also host [`plumber`](https://www.rplumber.io/) APIs to make your R func
 ```
 
 After you run the script, the API documentation will be exposed at <http://localhost:8003/__docs__/#/>. You can execute the script in your running container from the terminal of your host machine with:
+
 ``` bash
 docker exec -dw /home/rstudio/R/api blog_example Rscript run.R
 ```
 
-![](images/api.png)
-
-
+![](images/api_swagger.png)
 
 # Deploy
-The framework above should be all you need to create reproducible environment containers for R projects. The final step is organizing the steps above into a build script that can be run on your remote host (on-premises or in the cloud). I'll try to follow-up with a more detailed post on how to do this, along with some tips and tricks for managing automated builds and CI/CD pipelines.
 
+The framework above should be all you need to create reproducible environment containers for R projects. The final step is organizing the steps above into a build script that can be run on your remote host (on-premises or in the cloud). I'll try to follow-up with a more detailed post on how to do this, along with some tips and tricks for managing automated builds and CI/CD pipelines.
