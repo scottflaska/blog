@@ -212,10 +212,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
   <li><a href="#install-docker" id="toc-install-docker" class="nav-link" data-scroll-target="#install-docker">Install Docker</a></li>
   <li><a href="#dockerfile" id="toc-dockerfile" class="nav-link" data-scroll-target="#dockerfile">Dockerfile</a></li>
-  <li><a href="#docker-compose-file" id="toc-docker-compose-file" class="nav-link" data-scroll-target="#docker-compose-file">Docker Compose file</a></li>
-  <li><a href="#build-and-run-container" id="toc-build-and-run-container" class="nav-link" data-scroll-target="#build-and-run-container">Build and run container</a></li>
-  <li><a href="#add-shiny-server" id="toc-add-shiny-server" class="nav-link" data-scroll-target="#add-shiny-server">Add Shiny Server</a></li>
-  <li><a href="#add-apis" id="toc-add-apis" class="nav-link" data-scroll-target="#add-apis">Add APIs</a></li>
+  <li><a href="#docker-compose" id="toc-docker-compose" class="nav-link" data-scroll-target="#docker-compose">Docker Compose</a></li>
+  <li><a href="#build-run-container" id="toc-build-run-container" class="nav-link" data-scroll-target="#build-run-container">Build + Run Container</a></li>
+  <li><a href="#rstudio-server" id="toc-rstudio-server" class="nav-link" data-scroll-target="#rstudio-server">RStudio Server</a></li>
+  <li><a href="#shiny-server" id="toc-shiny-server" class="nav-link" data-scroll-target="#shiny-server">Shiny Server</a></li>
+  <li><a href="#plumber-apis" id="toc-plumber-apis" class="nav-link" data-scroll-target="#plumber-apis">Plumber APIs</a></li>
   <li><a href="#deploy" id="toc-deploy" class="nav-link" data-scroll-target="#deploy">Deploy</a></li>
   </ul>
 </nav>
@@ -231,7 +232,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <section id="overview" class="level1">
 <h1>Overview</h1>
-<p>Sharing data science projects with stakeholders can be challenging, especially when working on smaller teams without dedicated IT/DevOps support. Through a lot of trial and error, I’ve developed a framework that I use for most of my R projects. This framework makes it easy to collaborate with other team members and deploy web apps, reports, and APIs on-premises or in the cloud. In this post I’ll outline the steps needed to get started (code <a href="https://github.com/scottflaska/blog/tree/production/posts/03_rocker">here</a>).</p>
+<p>Sharing data science projects with stakeholders can be challenging, especially when working on smaller teams without dedicated IT/DevOps support. Through a lot of trial-and-error, I’ve developed a framework that I use for most of my R projects. This framework makes it easy to collaborate with other team members and deploy web apps, reports, and APIs on-premises or in the cloud. In this post I’ll outline the steps needed to get started (code <a href="https://github.com/scottflaska/blog/tree/production/posts/03_rocker">here</a>).</p>
 </section>
 <section id="install-docker" class="level1">
 <h1>Install Docker</h1>
@@ -241,7 +242,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h1>Dockerfile</h1>
 <p>Once Docker is installed, you’ll need to create a <code>Dockerfile</code> for your container. A Dockerfile is just a text file with instructions for what your environment needs to run code. These steps are usually comparable to helping a new team member get their laptop setup. Generally, you tell them what they need to install: programs, packages, database drivers, etc. A Dockerfile formalizes this process and makes it much easier to manage.</p>
 <p>Luckily, the folks at <a href="https://rocker-project.org/">The Rocker Project</a> have already done most of the heavy lifting. They provide a collection of Linux container images that you can extend for your own project. I generally use the <a href="https://rocker-project.org/images/versioned/rstudio.html"><code>rstudio</code></a> images which come with <a href="https://posit.co/download/rstudio-server/">RStudio Server</a> already installed. These images make it easy to develop R code inside the container while it’s running.</p>
-<p>Below you’ll find an example of a typical Dockerfile I use. It extends the <code>rstudio:4.2.2</code> image from The Rocker Project, installs and configures <a href="https://posit.co/products/open-source/shinyserver/">Shiny Server</a> (more on that later) and installs the R packages I’ll need.</p>
+<p>Below you’ll find an example of a typical Dockerfile I use. It extends the <code>rstudio:4.2.2</code> image from The Rocker Project, installs and configures <a href="https://posit.co/products/open-source/shinyserver/">Shiny Server</a> (more on that later) and installs the R packages we’ll need for this example.</p>
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>dockerfile</strong></pre>
@@ -260,8 +261,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">'install.packages(pkgs = c("plumber"))'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="docker-compose-file" class="level1">
-<h1>Docker Compose file</h1>
+<section id="docker-compose" class="level1">
+<h1>Docker Compose</h1>
+<p>The next step is installing <a href="https://docs.docker.com/compose/">Docker Compose</a>. Compose provides helpful configuration options which you can define in a <code>.yml</code> file.</p>
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>compose.yml</strong></pre>
@@ -284,30 +286,55 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./R:/home/rstudio/R</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p>The <code>build</code> parameter allows you to specify the path to the Dockerfile defined above, the <code>.</code> indicates the Dockerfile file is in the same directory as <code>compose.yml</code>. The <code>environment</code> parameter sets the <code>PASSWORD</code> and root access for the Rocker Project container. The <code>ports</code> parameter indicates which ports to expose on the container and how to map them to the host ports (<code>HOST:CONTAINER</code>). This is a crucial step which can be tricky. The applications in the container, like RStudio Server and Shiny Server, operate on specific ports (8787 and 3838, respectively) which you can map to your local machine anywhere you’d like (8803 and 3983 in this example). Port management allows you to run multiple containers with different projects simultaneously. Lastly, the <code>volumes</code> parameter allows you to connect a directory on your local machine to a directory in the container. This enables you to edit your code locally, as well as inside the container while it’s running. Without volumes, you would need to rebuild the container every time you changed your code.</p>
 </section>
-<section id="build-and-run-container" class="level1">
-<h1>Build and run container</h1>
+<section id="build-run-container" class="level1">
+<h1>Build + Run Container</h1>
+<p>Now you are ready to build and run the container, which can be done in a single command:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml up <span class="at">--build</span> <span class="at">-d</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>To stop the container, use:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml down</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="add-shiny-server" class="level1">
-<h1>Add Shiny Server</h1>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml up <span class="at">--build</span> <span class="at">-d</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml down</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> exec <span class="at">-dw</span> /home/rstudio/R/api blog_example Rscript run.R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Add Shiny web apps and R Markdown documents</p>
+<section id="rstudio-server" class="level1">
+<h1>RStudio Server</h1>
+<p>Navigate to <a href="http://localhost:8803/" class="uri">http://localhost:8803/</a> and you should see an RStudio Server login screen. Log in with <code>u: rstudio</code> and <code>p: blog</code>. Once you’ve logged in, you should see the familiar RStudio interface.</p>
+<p><img src="images/rstudio.png" class="img-fluid"></p>
+<p><img src="images/rstudio_ui.png" class="img-fluid"></p>
 </section>
-<section id="add-apis" class="level1">
-<h1>Add APIs</h1>
-<p><a href="http://localhost:8003/__docs__/#/" class="uri">http://localhost:8003/__docs__/#/</a></p>
-<p><img src="images/api.PNG" class="img-fluid"></p>
+<section id="shiny-server" class="level1">
+<h1>Shiny Server</h1>
+<p>As noted above, the Dockerfile contains a command to install Shiny Server from a <a href="https://github.com/rocker-org/rocker-versioned2#rocker-scripts">script provided by The Rocker Project</a>. Additionally, the Dockerfile overwrites the <code>/etc/shiny-server/shiny-server.conf</code> file with an updated config file that sets the host directory for Shiny apps to <code>/home/rstudio/R/shiny_apps</code>. This file path is found inside the container, you should be able to navigate to it from the file explorer in RStudio Server.</p>
+<p><img src="images/shiny_server_path.png" class="img-fluid"></p>
+<p>Any Shiny apps added in this directory will be exposed at <a href="http://localhost:3983/" class="uri">http://localhost:3983/</a>. You can also add interactive R Markdown reports as Shiny apps.</p>
+</section>
+<section id="plumber-apis" class="level1">
+<h1>Plumber APIs</h1>
+<p>You can also host <a href="https://www.rplumber.io/"><code>plumber</code></a> APIs to make your R functions available as API endpoints. This is particularly helpful for making trained ML models accessible to other applications. First, create a <code>plumber.R</code> API script<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. Next add a script that runs your new API on port 8000 (mapped to 8003 in <code>compose.yml</code>).</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>run.R</strong></pre>
+</div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode R code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>r <span class="ot">=</span> plumber<span class="sc">::</span><span class="fu">plumb</span>(<span class="st">"plumber.R"</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>r<span class="sc">$</span><span class="fu">run</span>(<span class="at">host=</span><span class="st">"0.0.0.0"</span>, <span class="at">port=</span><span class="dv">8000</span>, <span class="at">swagger=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>After you run the script, the API documentation will be exposed at <a href="http://localhost:8003/__docs__/#/" class="uri">http://localhost:8003/__docs__/#/</a>. You can execute the script in your running container from the terminal of your host machine with:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> exec <span class="at">-dw</span> /home/rstudio/R/api blog_example Rscript run.R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><img src="images/api.png" class="img-fluid"></p>
 </section>
 <section id="deploy" class="level1">
 <h1>Deploy</h1>
+<p>The framework above should be all you need to create reproducible environment containers for R projects. The final step is organizing the steps above into a build script that can be run on your remote host (on-premises or in the cloud). I’ll try to follow-up with a more detailed post on how to do this, along with some tips and tricks for managing automated builds and CI/CD pipelines.</p>
 
 
 </section>
 
-</main> <!-- /main -->
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>File &gt; New File &gt; Plumber API…<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
