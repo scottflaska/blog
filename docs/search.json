@@ -74,6 +74,27 @@
     "href": "posts/03_rocker/index.html",
     "title": "Deploying R Projects in Docker",
     "section": "",
-    "text": "Managing data science projects is hard.\n\n\ndockerfile\n\nFROM rocker/rstudio:4.2.2\n\n#install shiny server\nRUN /rocker_scripts/install_shiny_server.sh\n\n#add shiny server config\nCOPY /R/shiny_server.conf /etc/shiny-server/shiny-server.conf\n\n#install R packages\nRUN R -e 'install.packages(pkgs = c(\"plumber\"))'\n\n\n\ncompose.yml\n\nversion: \"3.9\"\n\nservices:\n  blog_example:\n    build: .\n    image: blog_example\n    container_name: blog_example\n    environment:\n      - PASSWORD=blog\n      - ROOT=true\n    ports:\n      - \"8803:8787\"\n      - \"8003:8000\"\n      - \"3983:3838\"\n    restart: always\n    volumes:\n      - ./R:/home/rstudio/R\n\ndocker-compose -f compose.yml up --build -d\ndocker-compose -f compose.yml down\nhttp://localhost:8003/__docs__/#/"
+    "text": "Overview\nSharing data science projects with stakeholders can be challenging, especially when working on smaller teams without dedicated IT/DevOps support. Through a lot of trial and error, I’ve developed a framework that I use for most of my R projects. This framework makes it easy to collaborate with other team members and deploy web apps, reports, and APIs on-premises or in the cloud. In this post I’ll outline the steps needed to get started (code here).\n\n\nInstall Docker\nThe first step is to install Docker. Docker is a platform that allows you to run applications in “isolated” environments called containers. You can find the install instructions here.\n\n\nDockerfile\nOnce Docker is installed, you’ll need to create a Dockerfile for your container. A Dockerfile is just a text file with instructions for what your environment needs to run code. These steps are usually comparable to helping a new team member get their laptop setup. Generally, you tell them what they need to install: programs, packages, database drivers, etc. A Dockerfile formalizes this process and makes it much easier to manage.\nLuckily, the folks at The Rocker Project have already done most of the heavy lifting. They provide a collection of Linux container images that you can extend for your own project. I generally use the rstudio images which come with RStudio Server already installed. These images make it easy to develop R code inside the container while it’s running.\nBelow you’ll find an example of a typical Dockerfile I use. It extends the rstudio:4.2.2 image from The Rocker Project, installs and configures Shiny Server (more on that later) and installs the R packages I’ll need.\n\n\ndockerfile\n\nFROM rocker/rstudio:4.2.2\n\n#install shiny server\nRUN /rocker_scripts/install_shiny_server.sh\n\n#add shiny server config\nCOPY /R/shiny_server.conf /etc/shiny-server/shiny-server.conf\n\n#install R packages\nRUN R -e 'install.packages(pkgs = c(\"markdown\"))'\nRUN R -e 'install.packages(pkgs = c(\"rmarkdown\"))'\nRUN R -e 'install.packages(pkgs = c(\"plumber\"))'\n\n\n\nDocker Compose file\n\n\ncompose.yml\n\nversion: \"3.9\"\n\nservices:\n  blog_example:\n    build: .\n    image: blog_example\n    container_name: blog_example\n    environment:\n      - PASSWORD=blog\n      - ROOT=true\n    ports:\n      - \"8803:8787\"\n      - \"8003:8000\"\n      - \"3983:3838\"\n    restart: always\n    volumes:\n      - ./R:/home/rstudio/R\n\n\n\nBuild and run container\ndocker-compose -f compose.yml up --build -d\n\n\nAdd Shiny Server\ndocker-compose -f compose.yml up --build -d\ndocker-compose -f compose.yml down\ndocker exec -dw /home/rstudio/R/api blog_example Rscript run.R\nAdd Shiny web apps and R Markdown documents\n\n\nAdd APIs\nhttp://localhost:8003/__docs__/#/\n\n\n\nDeploy"
+  },
+  {
+    "objectID": "posts/03_rocker/index.html#add-shiny-web-apps",
+    "href": "posts/03_rocker/index.html#add-shiny-web-apps",
+    "title": "Deploying R Projects in Docker",
+    "section": "Add Shiny web apps",
+    "text": "Add Shiny web apps"
+  },
+  {
+    "objectID": "posts/03_rocker/index.html#add-r-markdown-shiny-documents",
+    "href": "posts/03_rocker/index.html#add-r-markdown-shiny-documents",
+    "title": "Deploying R Projects in Docker",
+    "section": "Add R Markdown Shiny documents",
+    "text": "Add R Markdown Shiny documents"
+  },
+  {
+    "objectID": "posts/03_rocker/index.html#add-shiny-web-apps-and-r-markdown-documents",
+    "href": "posts/03_rocker/index.html#add-shiny-web-apps-and-r-markdown-documents",
+    "title": "Deploying R Projects in Docker",
+    "section": "Add Shiny web apps and R Markdown documents",
+    "text": "Add Shiny web apps and R Markdown documents"
   }
 ]

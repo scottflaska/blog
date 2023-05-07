@@ -128,7 +128,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <link rel="stylesheet" href="../../styles.css">
 </head>
 
-<body class="nav-fixed fullcontent">
+<body class="floating nav-fixed">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -169,7 +169,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     </nav>
 </header>
 <!-- content -->
-<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+<header id="title-block-header" class="quarto-title-block default toc-left page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
       <h1 class="title">Deploying R Projects in Docker</h1>
@@ -204,15 +204,44 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   
   </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#install-docker" id="toc-install-docker" class="nav-link" data-scroll-target="#install-docker">Install Docker</a></li>
+  <li><a href="#dockerfile" id="toc-dockerfile" class="nav-link" data-scroll-target="#dockerfile">Dockerfile</a></li>
+  <li><a href="#docker-compose-file" id="toc-docker-compose-file" class="nav-link" data-scroll-target="#docker-compose-file">Docker Compose file</a></li>
+  <li><a href="#build-and-run-container" id="toc-build-and-run-container" class="nav-link" data-scroll-target="#build-and-run-container">Build and run container</a></li>
+  <li><a href="#add-shiny-server" id="toc-add-shiny-server" class="nav-link" data-scroll-target="#add-shiny-server">Add Shiny Server</a></li>
+  <li><a href="#add-apis" id="toc-add-apis" class="nav-link" data-scroll-target="#add-apis">Add APIs</a></li>
+  <li><a href="#deploy" id="toc-deploy" class="nav-link" data-scroll-target="#deploy">Deploy</a></li>
+  </ul>
+</nav>
+</nav>
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+    </div>
 <!-- main -->
 <main class="content quarto-banner-title-block" id="quarto-document-content">
 
 
 
 
-<p>Managing data science projects is hard.</p>
+<section id="overview" class="level1">
+<h1>Overview</h1>
+<p>Sharing data science projects with stakeholders can be challenging, especially when working on smaller teams without dedicated IT/DevOps support. Through a lot of trial and error, I’ve developed a framework that I use for most of my R projects. This framework makes it easy to collaborate with other team members and deploy web apps, reports, and APIs on-premises or in the cloud. In this post I’ll outline the steps needed to get started (code <a href="https://github.com/scottflaska/blog/tree/production/posts/03_rocker">here</a>).</p>
+</section>
+<section id="install-docker" class="level1">
+<h1>Install Docker</h1>
+<p>The first step is to install Docker. Docker is a platform that allows you to run applications in “isolated” environments called containers. You can find the install instructions <a href="https://docs.docker.com/get-docker/">here</a>.</p>
+</section>
+<section id="dockerfile" class="level1">
+<h1>Dockerfile</h1>
+<p>Once Docker is installed, you’ll need to create a <code>Dockerfile</code> for your container. A Dockerfile is just a text file with instructions for what your environment needs to run code. These steps are usually comparable to helping a new team member get their laptop setup. Generally, you tell them what they need to install: programs, packages, database drivers, etc. A Dockerfile formalizes this process and makes it much easier to manage.</p>
+<p>Luckily, the folks at <a href="https://rocker-project.org/">The Rocker Project</a> have already done most of the heavy lifting. They provide a collection of Linux container images that you can extend for your own project. I generally use the <a href="https://rocker-project.org/images/versioned/rstudio.html"><code>rstudio</code></a> images which come with <a href="https://posit.co/download/rstudio-server/">RStudio Server</a> already installed. These images make it easy to develop R code inside the container while it’s running.</p>
+<p>Below you’ll find an example of a typical Dockerfile I use. It extends the <code>rstudio:4.2.2</code> image from The Rocker Project, installs and configures <a href="https://posit.co/products/open-source/shinyserver/">Shiny Server</a> (more on that later) and installs the R packages I’ll need.</p>
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>dockerfile</strong></pre>
@@ -226,8 +255,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">COPY</span> /R/shiny_server.conf /etc/shiny-server/shiny-server.conf</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#install R packages</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">'install.packages(pkgs = c("plumber"))'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">'install.packages(pkgs = c("markdown"))'</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">'install.packages(pkgs = c("rmarkdown"))'</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">'install.packages(pkgs = c("plumber"))'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+</section>
+<section id="docker-compose-file" class="level1">
+<h1>Docker Compose file</h1>
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>compose.yml</strong></pre>
@@ -250,12 +284,28 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./R:/home/rstudio/R</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml up <span class="at">--build</span> <span class="at">-d</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml down</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="build-and-run-container" class="level1">
+<h1>Build and run container</h1>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml up <span class="at">--build</span> <span class="at">-d</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="add-shiny-server" class="level1">
+<h1>Add Shiny Server</h1>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml up <span class="at">--build</span> <span class="at">-d</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> <span class="at">-f</span> compose.yml down</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> exec <span class="at">-dw</span> /home/rstudio/R/api blog_example Rscript run.R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Add Shiny web apps and R Markdown documents</p>
+</section>
+<section id="add-apis" class="level1">
+<h1>Add APIs</h1>
 <p><a href="http://localhost:8003/__docs__/#/" class="uri">http://localhost:8003/__docs__/#/</a></p>
 <p><img src="images/api.PNG" class="img-fluid"></p>
+</section>
+<section id="deploy" class="level1">
+<h1>Deploy</h1>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

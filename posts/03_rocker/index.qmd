@@ -4,24 +4,61 @@ author: "Scott Flaska"
 date: "2023-05-07"
 categories: [r, docker, devops]
 image: "images/docker.png"
-format: html
+format: 
+  html:
+    toc: true
+    toc-location: left
+    toc-title: Contents
 filters: 
   - include-code-files
 ---
 
-Managing data science projects is hard.
+# Overview
+
+Sharing data science projects with stakeholders can be challenging, especially when working on smaller teams without dedicated IT/DevOps support. Through a lot of trial and error, I've developed a framework that I use for most of my R projects. This framework makes it easy to collaborate with other team members and deploy web apps, reports, and APIs on-premises or in the cloud. In this post I'll outline the steps needed to get started (code [here](https://github.com/scottflaska/blog/tree/production/posts/03_rocker)).
+
+# Install Docker
+
+The first step is to install Docker. Docker is a platform that allows you to run applications in "isolated" environments called containers. You can find the install instructions [here](https://docs.docker.com/get-docker/).
+
+# Dockerfile
+
+Once Docker is installed, you'll need to create a `Dockerfile` for your container. A Dockerfile is just a text file with instructions for what your environment needs to run code. These steps are usually comparable to helping a new team member get their laptop setup. Generally, you tell them what they need to install: programs, packages, database drivers, etc. A Dockerfile formalizes this process and makes it much easier to manage.
+
+Luckily, the folks at [The Rocker Project](https://rocker-project.org/) have already done most of the heavy lifting. They provide a collection of Linux container images that you can extend for your own project. I generally use the [`rstudio`](https://rocker-project.org/images/versioned/rstudio.html) images which come with [RStudio Server](https://posit.co/download/rstudio-server/) already installed. These images make it easy to develop R code inside the container while it's running.
+
+Below you'll find an example of a typical Dockerfile I use. It extends the `rstudio:4.2.2` image from The Rocker Project, installs and configures [Shiny Server](https://posit.co/products/open-source/shinyserver/) (more on that later) and installs the R packages I'll need.
 
 ``` {.dockerfile include="dockerfile" filename="dockerfile"}
 ```
 
+
+
+# Docker Compose file
+
 ``` {.yml include="compose.yml" filename="compose.yml"}
 ```
+
+# Build and run container
+
+``` bash
+docker-compose -f compose.yml up --build -d
+```
+
+# Add Shiny Server
 
 ``` bash
 docker-compose -f compose.yml up --build -d
 docker-compose -f compose.yml down
+docker exec -dw /home/rstudio/R/api blog_example Rscript run.R
 ```
+
+Add Shiny web apps and R Markdown documents
+
+# Add APIs
 
 <http://localhost:8003/__docs__/#/>
 
 ![](images/api.PNG)
+
+# Deploy
