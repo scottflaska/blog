@@ -86,7 +86,6 @@ After you run the script, the API documentation will be exposed at <http://local
 docker exec -dw /home/rstudio/R/api blog_example Rscript run.R
 ```
 
-![](images/api_swagger.png)
 
 # Deploy
 
