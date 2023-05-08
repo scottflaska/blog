@@ -1,5 +1,5 @@
 ---
-title: "Deploying R Projects in Docker"
+title: "Deploying R Projects with Docker"
 author: "Scott Flaska"
 date: "2023-05-07"
 categories: [r, docker, devops]
@@ -85,7 +85,6 @@ After you run the script, the API documentation will be exposed at <http://local
 ``` bash
 docker exec -dw /home/rstudio/R/api blog_example Rscript run.R
 ```
-
 
 # Deploy
 
