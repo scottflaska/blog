@@ -5,6 +5,8 @@ date: "2023-05-01"
 categories: [shotlink, golf, r, eda]
 image: "east_lake_overlay.png"
 format: html
+execute: 
+  freeze: auto
 ---
 
 Last year I found some sample data while reading about PGA Shotlink[^1]. I decided to put together a series of posts using this data. This first post will cover some simple data cleaning and visualization.

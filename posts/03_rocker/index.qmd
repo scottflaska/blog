@@ -11,6 +11,8 @@ format:
     toc-title: Contents
 filters: 
   - include-code-files
+execute: 
+  freeze: auto
 ---
 
 # Overview

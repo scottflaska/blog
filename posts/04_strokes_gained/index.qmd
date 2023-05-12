@@ -1,0 +1,230 @@
+---
+title: "Building a Strokes Gained Model for Golf"
+author: "Scott Flaska"
+date: "2023-05-01"
+draft: true
+categories: [shotlink, golf, r, machine learning]
+image: ""
+format: html
+---
+
+Strokes Gained is an interesting method for evaluating golfers, co-created by Columbia Business School professor Mark Broadie.
+
+```{=html}
+<blockquote class="twitter-tweet" data-lang="en" data-theme="dark"><p lang="en" dir="ltr">Strokes Gained co-creator <a href="https://twitter.com/MarkBroadie?ref_src=twsrc%5Etfw">@markbroadie</a> illustrates the statistic using Justin Thomas&#39; final-round eagle at the 2021 <a href="https://twitter.com/hashtag/THEPLAYERS?src=hash&amp;ref_src=twsrc%5Etfw">#THEPLAYERS</a>. 🔎 <a href="https://t.co/LJ6qnp3ooE">pic.twitter.com/LJ6qnp3ooE</a></p>&mdash; Golf Channel (@GolfChannel) <a href="https://twitter.com/GolfChannel/status/1633598893706338305?ref_src=twsrc%5Etfw">March 8, 2023</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+```
+From my understanding, Strokes Gained is similar to Expected Points Added (EPA) in football - golfers are evaluated against an "expected" number of strokes remaining after each shot. This "expected" value is based off a predictive model trained on historical data[^1]. In this post, I'll build my own Strokes Gained model using PGA ShotLink data. The model will use features in the shot-level data to predict how many strokes remaining the golfer has before the shot.
+
+[^1]: These methods have a major shortcoming in that they attribute the entire residual to a single golfer (or the teams involved). This could probably be corrected with a hierarchical/mixed model, but I'll save that for a future post.
+
+First, I'll load the cleaned up data from my [previous post](https://scottflaska.github.io/blog/posts/02_shotlink_explore/).
+
+```{r}
+#| output: false
+library(tidyverse)
+library(tidymodels)
+```
+
+```{r}
+shot_level <- readRDS("../02_shotlink_explore/shot_level.rds")
+cut_colors <- readRDS("../02_shotlink_explore/cut_colors.rds")
+```
+
+Intuitively, distance from the hole will probably be the best predictor of strokes remaining.
+
+```{r}
+#| warning: false
+shot_level %>% 
+  ggplot(mapping = aes(x = yards_out_before_shot,
+                       y = strokes_remaining_before_shot)) +
+  geom_jitter(width = 0,
+              height = 0.1,
+              alpha = 0.1) +
+  geom_smooth(method = loess,
+              se = FALSE) +
+  scale_y_continuous(breaks = 1:10) +
+  theme_minimal()
+
+#Calculate R-Squared
+cor(shot_level$yards_out_before_shot, 
+    shot_level$strokes_remaining_before_shot)^2
+
+```
+
+While there is a certainly a correlation between these numbers, the relationship is not quite linear. A log transformation should clean this up.
+
+```{r}
+#| warning: false
+shot_level <- shot_level %>% 
+  mutate(log_yards_out_before_shot = log(yards_out_before_shot+1))
+  
+
+shot_level %>% 
+  ggplot(mapping = aes(x = log_yards_out_before_shot,
+                       y = strokes_remaining_before_shot)) +
+  geom_jitter(width = 0,
+              height = 0.1,
+              alpha = 0.1) +
+  geom_smooth(method = loess,
+              se = FALSE) +
+  scale_y_continuous(breaks = 1:10) +
+  theme_minimal()
+
+#Calculate R-Squared
+cor(shot_level$log_yards_out_before_shot, 
+    shot_level$strokes_remaining_before_shot)^2
+```
+
+The log transformation improves the R^2^ value, but it can probably be improved even further with a nonlinear model. To test this, I'll use cross-validation to evaluate out-of-sample performance. Ideally, I'd like to use some type of [time-series data splitting](https://topepo.github.io/caret/data-splitting.html#data-splitting-for-time-series) here to avoid any possible data leakage issues[^2], but I'll use a simpler method in this post. To avoid over-fitting, I need to make sure I don't include shot's from the same golfer-hole in the training and hold-out data[^3]. I'll split the 30 golfers into 10 groups of 3, and hold out one of these groups in the cross-validation process.
+
+[^2]: If I wanted to use this model to predict strokes remaining for future shot's, I would want to make sure I'm not using future shots when training/evaluating my model.
+
+[^3]: If a player took a triple bogey on a hole, the model could look at the other shots for the player on that hole and see that there is likely going to be a higher score.
+
+```{r}
+player_cv_groups <- shot_level %>% 
+  select(player) %>% 
+  unique() %>% 
+  arrange(player) %>% 
+  mutate(cv_group = cut_number(x = player, 
+                               n = 10,
+                               labels = FALSE))
+
+shot_level <- shot_level %>% 
+  inner_join(player_cv_groups,
+             by = "player")
+
+shot_level %>% 
+  group_by(cv_group) %>% 
+  summarize(golfers = n_distinct(player),
+            shots = n())
+
+folds <- group_vfold_cv(data = shot_level,
+                        group = cv_group)
+
+```
+
+Now, using these folds, I'll find a performance baseline using the linear model above.
+
+```{r}
+
+just_log_yards_recipe <- recipe(formula = strokes_remaining_before_shot ~ log_yards_out_before_shot, 
+                                data = shot_level)
+
+lm_mod <- linear_reg(mode = "regression",
+                     engine = "lm")
+
+lm_workflow <- workflow() %>%
+  add_recipe(just_log_yards_recipe) %>%
+  add_model(lm_mod)
+
+lm_rs <- fit_resamples(object = lm_workflow,
+                       resamples = folds)
+
+lm_rs %>%
+  collect_metrics() %>%
+  select(.metric,
+         mean) %>%
+  as.data.frame()
+
+```
+
+As expected, the mean hold-out performance is very similar to the linear model fit on all the data.
+
+Next I'll try a gradient boosted tree model using the [xgboost](https://xgboost.readthedocs.io/en/stable/) library. I love xgboost. It trains and tunes relatively quickly, and you don't usually need to worry about other tedious pre-processing steps like centering, scaling, and imputing.
+
+```{r}
+#| warning: false
+
+xgb_mod <- boost_tree(mode = "regression",
+                      engine = "xgboost")
+
+xgb_workflow <- workflow() %>%
+  add_recipe(just_log_yards_recipe) %>%
+  add_model(xgb_mod)
+
+xgb_rs <- fit_resamples(object = xgb_workflow,
+                        resamples = folds)
+
+xgb_rs %>%
+  collect_metrics() %>%
+  select(.metric,
+         mean) %>%
+  as.data.frame()
+```
+
+The xgboost model improves performance without any parameter tuning, so I'll stick with it for now.
+
+Next, I'd like to add some more features. I'll start with the ball location (fairway, green, etc.). I cleaned up ball location data in [my last post](https://scottflaska.github.io/blog/posts/02_shotlink_explore/#:~:text=The%20columns%20seem%20to%20match%20up%20pretty%20well%2C%20but%20I%E2%80%99d%20like%20to%20consolidate%20them%20into%20more%20general%20to_location%20column.), but those were the `to_location` columns. Here I need the `from_location` columns because I am using `strokes_remaining_before_shot` and `yards_out_before_shot` . Rather than clean these columns, I'll use `dplyr::lag()` to grab the `to_location` from the previous shot.
+
+```{r}
+shot_level %>% 
+  filter(player == 1810,
+         round == 1,
+         hole == 1) %>% 
+  select(shot,
+         to_location)
+
+shot_level <- shot_level %>% 
+  group_by(player,
+           round,
+           hole) %>% 
+  arrange(shot) %>% 
+  mutate(from_location = lag(to_location)) %>% 
+  ungroup() %>% 
+  mutate(from_location = ifelse(shot == 1, 'Tee Box', from_location)) %>% 
+  mutate(from_location = factor(from_location,
+                                levels = c("Tee Box",
+                                           "Rough",
+                                           "Green",
+                                           "Fairway",
+                                           "Other",
+                                           "Bunker",
+                                           "Water",
+                                           "Hole")))
+
+shot_level %>% 
+  filter(player == 1810,
+         round == 1,
+         hole %in% 1:3) %>%
+  select(hole,
+         shot,
+         to_location,
+         from_location) %>% 
+  arrange(hole,
+          shot) %>% 
+  as.data.frame()
+```
+
+Now I'll train a new xgboost model with this feature. I'll switch back to using `yards_out_before_shot` instead of `log_yards_out_before_shot` since xgboost is nonlinear, it should not have much impact on model performance. Since I've updated the data set, I'll need to recreate the fold index and the recipe.
+
+```{r}
+folds <- group_vfold_cv(data = shot_level,
+                        group = cv_group)
+
+with_location_recipe <- recipe(formula = strokes_remaining_before_shot ~
+                                 yards_out_before_shot +
+                                 from_location, 
+                                data = shot_level) %>% 
+  step_dummy(from_location)
+
+xgb_mod <- boost_tree(mode = "regression",
+                      engine = "xgboost")
+
+xgb_workflow <- workflow() %>%
+  add_recipe(with_location_recipe) %>%
+  add_model(xgb_mod)
+
+xgb_rs <- fit_resamples(object = xgb_workflow,
+                        resamples = folds)
+
+xgb_rs %>%
+  collect_metrics() %>%
+  select(.metric,
+         mean) %>%
+  as.data.frame()
+```
+
+A small improvement, but an
+
+Next, I'd like to add a feature that uses nearby
