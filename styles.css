@@ -3,3 +3,9 @@
 body {
  font-family: Roboto !important;
 }
+
+.twitter-tweet {
+  margin: auto;
+  width: 50%;
+  padding: 10px;
+}
