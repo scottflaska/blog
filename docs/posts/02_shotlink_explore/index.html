@@ -514,11 +514,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'Intermediate Rough'</span>,<span class="st">'Primary Rough'</span>) <span class="sc">~</span> <span class="st">'Rough'</span>,</span>
 <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">==</span> <span class="st">'Green'</span> <span class="sc">~</span> <span class="st">'Green'</span>,</span>
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                                     to_location_scorer <span class="sc">==</span> <span class="st">'Water'</span> <span class="sc">~</span> <span class="st">'Water'</span>,</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                                     <span class="fu">is.na</span>(x) <span class="sc">~</span> <span class="st">'Hole'</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                                     distance_to_hole_after_the_shot <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">'Hole'</span>,</span>
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>                                     T <span class="sc">~</span> <span class="st">'Other'</span>))</span>
 <span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>shot_level_clean_coords_cut <span class="sc">%&gt;%</span> </span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(x)) <span class="sc">%&gt;%</span> </span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(x)) <span class="sc">%&gt;%</span></span>
 <span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(to_location_laser,</span>
 <span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>           to_location_scorer,</span>
 <span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>           to_location) <span class="sc">%&gt;%</span></span>

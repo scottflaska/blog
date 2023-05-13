@@ -213,11 +213,11 @@ shot_level_clean_coords_cut <- shot_level_clean_coords %>%
                                      to_location_scorer %in% c('Intermediate Rough','Primary Rough') ~ 'Rough',
                                      to_location_scorer == 'Green' ~ 'Green',
                                      to_location_scorer == 'Water' ~ 'Water',
-                                     is.na(x) ~ 'Hole',
+                                     distance_to_hole_after_the_shot == 0 ~ 'Hole',
                                      T ~ 'Other'))
 
 shot_level_clean_coords_cut %>% 
-  filter(!is.na(x)) %>% 
+  filter(!is.na(x)) %>%
   group_by(to_location_laser,
            to_location_scorer,
            to_location) %>%

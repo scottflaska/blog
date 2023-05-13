@@ -30,24 +30,69 @@ shot_level <- readRDS("../02_shotlink_explore/shot_level.rds")
 cut_colors <- readRDS("../02_shotlink_explore/cut_colors.rds")
 ```
 
-Intuitively, distance from the hole will probably be the best predictor of strokes remaining.
+Before I start building a model, I want to get a better understanding of how penalties, drops, and provisionals are handled in the data. The `shot_type_s_p_d` column has this information (S = Shot, P = Penalty, D = Drop, Pr = Provisional).
+
+```{r}
+#Filter to holes where player's had at least 1 penalty/drop/provisional
+shot_level %>% 
+  mutate(is_p_d = ifelse(shot_type_s_p_d == 'S',0,1)) %>% 
+  group_by(player,
+           round,
+           hole) %>% 
+  mutate(p_d_count = sum(is_p_d)) %>% 
+  filter(p_d_count > 0) %>% 
+  ungroup() %>% 
+  arrange(player,
+          round,
+          hole,
+          shot) %>% 
+  select(player,
+         round,
+         hole,
+         shot,
+         type = shot_type_s_p_d,
+         strokes = num_of_strokes,
+         yards_out = yards_out_before_shot,
+         to_location) %>% 
+  as.data.frame() %>% 
+  head(14)
+```
+
+Reviewing the sample above, it looks like the `yards_out_before_shot` column (which will probably be the best predictor of strokes remaining) is a little misleading for penalty drops. For example, t looks like Player 6527 went in the water off the tee on Day 4 6th Hole and had to take a penalty drop. The `yards_out_before_shot` value on the penalty and the drop is 20.25, but 70.11 on the first shot after the drop. This is probably because ShotLink is measuring to where the ball landed in the water, but Player 6527 had to drop where they [entered the penalty area](https://www.usga.org/RulesFAQ/rules_answer.asp?FAQidx=210&Rule=0&Topic=4). For my model, I'll filter down to actual shots, where `shot_type_s_p_d = "S"`. Before I do that, I'll add `x_before_shot` and `y_before_shot` columns which I'll use later.
+
+```{r}
+shots <- shot_level %>% 
+  group_by(player,
+           round,
+           hole) %>% 
+  arrange(player,
+          round,
+          hole,
+          shot) %>% 
+  mutate(x_before_shot = lag(x),
+         y_before_shot = lag(y)) %>% 
+  ungroup() %>% 
+  filter(shot_type_s_p_d == 'S')
+```
+
+Now I'll take a look at how distance from the hole correlates to strokes remaining.
 
 ```{r}
 #| warning: false
-shot_level %>% 
+shots %>% 
   ggplot(mapping = aes(x = yards_out_before_shot,
                        y = strokes_remaining_before_shot)) +
   geom_jitter(width = 0,
               height = 0.1,
-              alpha = 0.1) +
+              alpha = 0.25) +
   geom_smooth(method = loess,
               se = FALSE) +
   scale_y_continuous(breaks = 1:10) +
   theme_minimal()
 
 #Calculate R-Squared
-cor(shot_level$yards_out_before_shot, 
-    shot_level$strokes_remaining_before_shot)^2
+cor(shots$yards_out_before_shot, 
+    shots$strokes_remaining_before_shot)^2
 
 ```
 
@@ -55,11 +100,11 @@ While there is a certainly a correlation between these numbers, the relationship
 
 ```{r}
 #| warning: false
-shot_level <- shot_level %>% 
+shots <- shots %>% 
   mutate(log_yards_out_before_shot = log(yards_out_before_shot+1))
   
 
-shot_level %>% 
+shots %>% 
   ggplot(mapping = aes(x = log_yards_out_before_shot,
                        y = strokes_remaining_before_shot)) +
   geom_jitter(width = 0,
@@ -71,8 +116,8 @@ shot_level %>%
   theme_minimal()
 
 #Calculate R-Squared
-cor(shot_level$log_yards_out_before_shot, 
-    shot_level$strokes_remaining_before_shot)^2
+cor(shots$log_yards_out_before_shot, 
+    shots$strokes_remaining_before_shot)^2
 ```
 
 The log transformation improves the R^2^ value, but it can probably be improved even further with a nonlinear model. To test this, I'll use cross-validation to evaluate out-of-sample performance. Ideally, I'd like to use some type of [time-series data splitting](https://topepo.github.io/caret/data-splitting.html#data-splitting-for-time-series) here to avoid any possible data leakage issues[^2], but I'll use a simpler method in this post. To avoid over-fitting, I need to make sure I don't include shot's from the same golfer-hole in the training and hold-out data[^3]. I'll split the 30 golfers into 10 groups of 3, and hold out one of these groups in the cross-validation process.
@@ -82,7 +127,7 @@ The log transformation improves the R^2^ value, but it can probably be improved 
 [^3]: If a player took a triple bogey on a hole, the model could look at the other shots for the player on that hole and see that there is likely going to be a higher score.
 
 ```{r}
-player_cv_groups <- shot_level %>% 
+player_cv_groups <- shots %>% 
   select(player) %>% 
   unique() %>% 
   arrange(player) %>% 
@@ -90,16 +135,16 @@ player_cv_groups <- shot_level %>%
                                n = 10,
                                labels = FALSE))
 
-shot_level <- shot_level %>% 
+shots <- shots %>% 
   inner_join(player_cv_groups,
              by = "player")
 
-shot_level %>% 
+shots %>% 
   group_by(cv_group) %>% 
   summarize(golfers = n_distinct(player),
             shots = n())
 
-folds <- group_vfold_cv(data = shot_level,
+folds <- group_vfold_cv(data = shots,
                         group = cv_group)
 
 ```
@@ -109,7 +154,7 @@ Now, using these folds, I'll find a performance baseline using the linear model 
 ```{r}
 
 just_log_yards_recipe <- recipe(formula = strokes_remaining_before_shot ~ log_yards_out_before_shot, 
-                                data = shot_level)
+                                data = shots)
 
 lm_mod <- linear_reg(mode = "regression",
                      engine = "lm")
@@ -119,7 +164,8 @@ lm_workflow <- workflow() %>%
   add_model(lm_mod)
 
 lm_rs <- fit_resamples(object = lm_workflow,
-                       resamples = folds)
+                       resamples = folds,
+                       control = control_resamples(save_pred = T))
 
 lm_rs %>%
   collect_metrics() %>%
@@ -158,14 +204,7 @@ The xgboost model improves performance without any parameter tuning, so I'll sti
 Next, I'd like to add some more features. I'll start with the ball location (fairway, green, etc.). I cleaned up ball location data in [my last post](https://scottflaska.github.io/blog/posts/02_shotlink_explore/#:~:text=The%20columns%20seem%20to%20match%20up%20pretty%20well%2C%20but%20I%E2%80%99d%20like%20to%20consolidate%20them%20into%20more%20general%20to_location%20column.), but those were the `to_location` columns. Here I need the `from_location` columns because I am using `strokes_remaining_before_shot` and `yards_out_before_shot` . Rather than clean these columns, I'll use `dplyr::lag()` to grab the `to_location` from the previous shot.
 
 ```{r}
-shot_level %>% 
-  filter(player == 1810,
-         round == 1,
-         hole == 1) %>% 
-  select(shot,
-         to_location)
-
-shot_level <- shot_level %>% 
+shots <- shots %>% 
   group_by(player,
            round,
            hole) %>% 
@@ -183,7 +222,7 @@ shot_level <- shot_level %>%
                                            "Water",
                                            "Hole")))
 
-shot_level %>% 
+shots %>% 
   filter(player == 1810,
          round == 1,
          hole %in% 1:3) %>%
@@ -199,20 +238,230 @@ shot_level %>%
 Now I'll train a new xgboost model with this feature. I'll switch back to using `yards_out_before_shot` instead of `log_yards_out_before_shot` since xgboost is nonlinear, it should not have much impact on model performance. Since I've updated the data set, I'll need to recreate the fold index and the recipe.
 
 ```{r}
-folds <- group_vfold_cv(data = shot_level,
+folds <- group_vfold_cv(data = shots,
                         group = cv_group)
 
 with_location_recipe <- recipe(formula = strokes_remaining_before_shot ~
-                                 yards_out_before_shot +
-                                 from_location, 
-                                data = shot_level) %>% 
+                                 yards_out_before_shot,
+                                 # from_location,
+                               data = shots) 
+  #step_dummy(from_location)
+
+xgb_mod <- boost_tree() %>% 
+  set_mode("regression") %>% 
+  set_engine("xgboost",
+             monotone_constraints = c(-1)) %>% 
+  translate()
+
+xgb_workflow <- workflow() %>%
+  add_recipe(with_location_recipe) %>%
+  add_model(xgb_mod)
+
+xgb_rs <- fit_resamples(object = xgb_workflow,
+                        resamples = folds,
+                        control = control_resamples(save_pred = T))
+
+xgb_rs %>%
+  collect_metrics() %>%
+  select(.metric,
+         mean) %>%
+  as.data.frame()
+```
+
+Not much of an improvement, but the model got a little better
+
+```{r}
+rs_preds <- xgb_rs %>% 
+  collect_predictions() %>% 
+  select(row_id = .row,
+         pred = .pred)
+
+preds_join <- shots %>% 
+  as.data.frame() %>% 
+  mutate(row_id = row_number()) %>% 
+  inner_join(rs_preds,
+             by = "row_id") 
+
+
+preds_join %>% 
+  ggplot(mapping = aes(x = yards_out_before_shot,
+                       y = pred)) +
+  geom_point()
+
+preds_join %>% 
+  filter(pred >= 4.5,
+         yards_out_before_shot < 200) %>% 
+  select(from_location,
+         yards_out_before_shot,
+         hole)
+
+preds_join %>% 
+  filter(yards_out_before_shot >= 179.8,
+         yards_out_before_shot <= 179.9) %>% 
+  select(strokes_remaining_before_shot)
+
+
+
+preds_join %>% 
+  ggplot(mapping = aes(x = pred,
+                       y = strokes_remaining_before_shot)) +
+  geom_jitter(height = 0.1,
+              alpha = 0.25)
+
+
+
+preds_join %>% 
+  group_by(player,
+           round,
+           hole) %>% 
+  arrange(player,
+           round,
+           hole,
+          shot) %>% 
+  mutate(next_strokes = lead(strokes_rolling),
+         next_pred = lead(pred)) %>%
+  ungroup() %>% 
+  select(player,
+         round,
+         hole,
+         shot,
+         strokes_rolling,
+         next_strokes,
+         strokes_remaining_before_shot,
+         pred,
+         next_pred,
+         yards_out_before_shot,
+         yards_out_after_shot) %>% 
+  mutate(next_pred = ifelse(is.na(next_pred),0,next_pred)) %>% 
+  mutate(next_strokes = ifelse(is.na(next_strokes),
+                               strokes_rolling + 1,
+                               next_strokes)) %>% 
+  mutate(actual_strokes = next_strokes - strokes_rolling) %>% 
+  mutate(strokes_gained = pred - next_pred - actual_strokes) %>% 
+  # filter(yards_out_after_shot == 0) %>% 
+  arrange(desc(strokes_gained))
+```
+
+Next, I'd like to add a feature that uses the results of nearby shots.
+
+```{r}
+#| eval: false
+round_hole_ids <- shots %>% 
+  select(round,
+         hole) %>% 
+  unique() %>% 
+  arrange(round,
+          hole) %>% 
+  mutate(round_hole_id = row_number())
+
+get_knn_preds <- function(id = 1,
+                          round_hole_ids,
+                          shots) {
+  
+  round_hole_shots <- round_hole_ids %>% 
+    filter(round_hole_id == id) %>% 
+    inner_join(shots,
+               by = c('round','hole')) %>% 
+    filter(!is.na(x_before_shot)) %>% 
+    select(player,
+           round,
+           hole,
+           shot,
+           cv_group,
+           x_before_shot,
+           y_before_shot,
+           strokes_remaining_before_shot)
+  
+  # round_hole_shots %>% 
+  #   mutate(strokes_remaining_before_shot = factor(strokes_remaining_before_shot,
+  #                                               ordered = T)) %>%
+  #   ggplot(mapping = aes(x = x_before_shot,
+  #                        y = y_before_shot,
+  #                        color = strokes_remaining_before_shot)) +
+  #   geom_point() +
+  #   coord_equal() +
+  #   theme_minimal()
+  
+  knn_folds <- group_vfold_cv(data = round_hole_shots,
+                              group = cv_group)
+  
+  knn_recipe <- recipe(formula = strokes_remaining_before_shot ~
+                         x_before_shot +
+                         y_before_shot,
+                       data = round_hole_shots)
+  
+  knn_mod <- nearest_neighbor(mode = "regression",
+                              engine = "kknn")
+  
+  knn_workflow <- workflow() %>%
+    add_recipe(knn_recipe) %>%
+    add_model(knn_mod)
+  
+  knn_rs <- fit_resamples(object = knn_workflow,
+                          resamples = knn_folds,
+                          control = control_resamples(save_pred = T))
+  
+  rs_preds <- knn_rs %>% 
+    collect_predictions() %>% 
+    select(row_id = .row,
+           pred = .pred)
+  
+  preds_join <- round_hole_shots %>% 
+    as.data.frame() %>% 
+    mutate(row_id = row_number()) %>% 
+    inner_join(rs_preds,
+               by = "row_id") %>% 
+    select(player,
+           round,
+           hole,
+           shot,
+           knn_pred = pred)
+  
+  return(preds_join)
+} 
+
+knn_preds_long <- round_hole_ids$round_hole_id %>% 
+  map(.f = get_knn_preds,
+      round_hole_ids,
+      shots) %>% 
+  bind_rows()
+
+saveRDS(knn_preds_long, file = "knn_preds_long.rds")
+```
+
+```{r}
+#| echo: false
+knn_preds_long <- readRDS(file = "knn_preds_long.rds")
+```
+
+```{r}
+#| warning: false
+shots <- shots %>% 
+  left_join(knn_preds_long,
+            by = c('player','round','hole','shot'))
+
+shots %>% 
+  ggplot(mapping = aes(x = knn_pred,
+                       y = strokes_remaining_before_shot)) +
+  geom_jitter()
+```
+
+```{r}
+folds <- group_vfold_cv(data = shots,
+                        group = cv_group)
+
+with_knn_recipe <- recipe(formula = strokes_remaining_before_shot ~
+                            yards_out_before_shot +
+                            from_location +
+                            knn_pred,
+                          data = shots) %>% 
   step_dummy(from_location)
 
 xgb_mod <- boost_tree(mode = "regression",
                       engine = "xgboost")
 
 xgb_workflow <- workflow() %>%
-  add_recipe(with_location_recipe) %>%
+  add_recipe(with_knn_recipe) %>%
   add_model(xgb_mod)
 
 xgb_rs <- fit_resamples(object = xgb_workflow,
@@ -225,6 +474,91 @@ xgb_rs %>%
   as.data.frame()
 ```
 
-A small improvement, but an
+```{r}
 
-Next, I'd like to add a feature that uses nearby
+# nearby_shots <- shots %>% 
+#   filter(!is.na(x_before_shot)) %>% 
+#   select(player,
+#          cv_group,
+#          round,
+#          hole,
+#          shot,
+#          x_before_shot,
+#          y_before_shot,
+#          strokes_remaining_before_shot) 
+# 
+# nearby_shots_join <- nearby_shots %>% 
+#   left_join(nearby_shots,
+#             by = "hole",
+#             suffix = c("_a","_b")) %>% 
+#   filter(cv_group_a != cv_group_b) %>% 
+#   mutate(dist_a_b = sqrt((x_before_shot_a-x_before_shot_b)^2 + (y_before_shot_a-y_before_shot_b)^2)) %>%
+#   mutate(dist_a_b = dist_a_b/3)
+# 
+# nearby_shot_example = nearby_shots_join %>% 
+#   filter(player_a == 1810,
+#          round_a == 1,
+#          hole == 1,
+#          shot_a == 2)
+# 
+# nearby_shot_example %>% 
+#   mutate(strokes_remaining_before_shot_b = factor(strokes_remaining_before_shot_b,
+#                                                   ordered = TRUE)) %>% 
+#   ggplot(mapping = aes(x = x_before_shot_b,
+#                        y = y_before_shot_b,
+#                        color = strokes_remaining_before_shot_b,
+#                        size = 1/dist_a_b)) +
+#   geom_point() +
+#   coord_equal()
+# 
+# nearby_shots_join %>% 
+#   filter(dist_a_b <= 10) %>% 
+#   mutate(weight = 1/dist_a_b) %>% 
+#   mutate(weighted_strokes = weight*strokes_remaining_before_shot_b) %>%
+#   group_by(player_a,
+#            hole,
+#            round_a,
+#            shot_a,
+#            strokes_remaining_before_shot_a) %>% 
+#   summarize(avg_strokes = mean(strokes_remaining_before_shot_b),
+#             total_weight = sum(weight),
+#             total_weighted_strokes = sum(weighted_strokes),
+#             .groups = "keep") %>% 
+#   mutate(weighted_avg = total_weighted_strokes/total_weight) %>% 
+#   ggplot(mapping = aes(x = weighted_avg,
+#                        y = strokes_remaining_before_shot_a)) +
+#   geom_jitter()
+# 
+# # nearby_shots_example <- nearby_shots_join %>% 
+# #   filter(player_a == 1810,
+# #          round_a == 1,
+# #          hole == 1,
+# #          ) %>% 
+# #   mutate(include = ifelse(dist_a_b <= 15,"yes","no"))
+# # 
+# # nearby_shots_example %>% 
+# #   ggplot() +
+# #   geom_point(mapping = aes(x = x_before_shot_b,
+# #                            y = y_before_shot_b))
+# # 
+# # subset <- nearby_shots_example %>%
+# #   filter(include == 'yes') %>% 
+# #   arrange(dist_a_b) %>%
+# #   select(dist_a_b,
+# #          strokes_remaining_after_shot_b) %>% 
+# #   mutate(weight = 1/dist_a_b) %>% 
+# #   mutate(weighted_strokes = weight*strokes_remaining_after_shot_b)
+# # 
+# # subset
+# # 
+# # subset %>% 
+#   summarize(avg_strokes = mean(strokes_remaining_after_shot_b),
+#             total_weight = sum(weight),
+#             weighted_strokes = sum(weighted_strokes)) %>%
+# #   mutate(weighted_avg = weighted_strokes/total_weight)
+# #   
+# # 
+# # nearby_shots_join %>% 
+# #   select(hole,)
+
+```
