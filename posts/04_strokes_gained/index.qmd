@@ -259,7 +259,7 @@ xgb_rs %>%
   as.data.frame()
 ```
 
-The model performance actually improved slightly with the contraints, which is encouraging. Now I'll look at the out-of-sample predictions again.
+The model performance actually improved slightly with the constraints, which is encouraging. Now I'll look at the out-of-sample predictions again.
 
 ```{r}
 rs_preds <- xgb_rs %>% 
