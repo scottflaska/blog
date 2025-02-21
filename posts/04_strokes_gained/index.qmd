@@ -409,3 +409,9 @@ preds_join %>%
 ```
 
 I could probably improve model performance with some parameter tuning, but I'll stop here for now.
+
+```{r, echo=FALSE}
+
+saveRDS(object = preds_join,file = "predictions.rds")
+
+```
