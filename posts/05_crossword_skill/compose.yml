@@ -1,0 +1,14 @@
+services:
+  blog:
+    build: .
+    image: blog
+    container_name: blog
+    environment:
+      - PASSWORD=nfl
+      - ROOT=true
+      - USERID=${xUID}
+    ports:
+      - "8701:8787"
+    restart: always
+    volumes:
+      - .:/home/rstudio/blog

@@ -1,0 +1,37 @@
+FROM rocker/rstudio:4.2.1
+
+#install packages for ms odbc drivers
+RUN sudo apt-get update && sudo apt-get install -y \
+apt-utils \
+apt-transport-https \
+gnupg \
+curl
+
+#install packages
+RUN apt-get update && apt-get install -y \
+nano \
+unixodbc \
+unixodbc-dev \
+tdsodbc \
+libxml2-dev \
+libz-dev \
+cron \
+openssh-server \
+python3-pip
+
+#configure C toolchain for linux (https://github.com/stan-dev/rstan/wiki/Configuring-C-Toolchain-for-Linux)
+RUN sudo apt-get update \
+&& sudo apt install -y software-properties-common \
+&& sudo add-apt-repository -y ppa:marutter/rrutter4.0 \
+&& sudo add-apt-repository -y ppa:c2d4u.team/c2d4u4.0+ \
+&& sudo apt update \
+&& sudo apt install -y r-cran-rstan
+
+#install RStan (https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started)
+RUN R -e 'Sys.setenv(DOWNLOAD_STATIC_LIBV8 = 1) # only necessary for Linux without the nodejs library / headers'
+RUN R -e 'install.packages("rstan", repos = "https://cloud.r-project.org/", dependencies = TRUE)'
+
+#set up project directory
+RUN mkdir -m 777 /home/rstudio/blog
+
+USER root
