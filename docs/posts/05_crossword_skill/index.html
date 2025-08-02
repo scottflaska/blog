@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Scott Flaska">
-<meta name="dcterms.date" content="2025-04-27">
+<meta name="dcterms.date" content="2025-05-03">
 
 <title>Tracking Changes in Crossword Player Skill – Scott Flaska</title>
 <style>
@@ -185,7 +185,6 @@ window.Quarto = {
       <h1 class="title">Tracking Changes in Crossword Player Skill</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">bayesian</div>
-                <div class="quarto-category">state space</div>
                 <div class="quarto-category">stan</div>
                 <div class="quarto-category">r</div>
               </div>
@@ -205,7 +204,7 @@ window.Quarto = {
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">April 27, 2025</p>
+        <p class="date">May 3, 2025</p>
       </div>
     </div>
     
@@ -222,6 +221,8 @@ window.Quarto = {
   <ul>
   <li><a href="#motivation" id="toc-motivation" class="nav-link active" data-scroll-target="#motivation">Motivation</a></li>
   <li><a href="#simulating-crossword-times" id="toc-simulating-crossword-times" class="nav-link" data-scroll-target="#simulating-crossword-times">Simulating Crossword Times</a></li>
+  <li><a href="#modeling-player-skill" id="toc-modeling-player-skill" class="nav-link" data-scroll-target="#modeling-player-skill">Modeling Player Skill</a></li>
+  <li><a href="#critique" id="toc-critique" class="nav-link" data-scroll-target="#critique">Critique</a></li>
   </ul>
 </nav>
 </nav>
@@ -256,7 +257,7 @@ window.Quarto = {
 <li><strong>Players don’t compete every day.</strong> Dan, Karl, and I play almost every day, but we all miss days occasionally. Matt and Peter play too, but much less frequently. With a wide variance in puzzle difficulty, the puzzles players randomly choose to play could impact their average time.</li>
 <li><strong>Each player’s skill is dynamic.</strong> I think it’s a reasonable assumption that players change over time, so it wouldn’t make sense to model their skill as a stationary process.</li>
 </ul>
-<p>In this post, I’ll outline a model that could be used to evaluate crossword player performance (borrowing heavily from <a href="https://richjand.rbind.io/post/2021/08/23/state-space-season-simulations/">this excellent post</a> by Richard Anderson)</p>
+<p>In this post, I’ll outline a model that could be used to evaluate crossword player performance (borrowing heavily from <a href="http://richjand.rbind.io/post/2021/08/23/state-space-season-simulations/">this excellent post</a> by Richard Anderson)</p>
 </section>
 <section id="simulating-crossword-times" class="level1">
 <h1>Simulating Crossword Times</h1>
@@ -429,6 +430,10 @@ window.Quarto = {
 </div>
 </div>
 </div>
+</section>
+<section id="modeling-player-skill" class="level1">
+<h1>Modeling Player Skill</h1>
+<p>Now that I have a sample data frame of fake crossword times, I’ll fit a Stan model on the data generating process described above.</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rstan)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -599,19 +604,18 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>puzzle_results_obs <span class="sc">%&gt;%</span> </span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> day,</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">y =</span> solve_time)) <span class="sc">+</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
+<p>As shown in the plots above, the model effectively tracks latent puzzle difficulty and player skill, providing some confidence that the model will perform well when applied to real data.</p>
+</section>
+<section id="critique" class="level1">
+<h1>Critique</h1>
+<p>While I’m pleased with the model I’ve developed, there is plenty of room for improvement. Specifically:</p>
+<ul>
+<li><strong>Practice Effect</strong> - Players are likely to improve with practice - the more consistently they play, the better they get. I’m not accounting for this in any way.</li>
+<li><strong>Censoring</strong> - The data is <a href="https://en.wikipedia.org/wiki/Censoring_(statistics)">censored</a>. Players can forfeit mid-puzzle if they are unable to solve it which I am not accounting for. Since these times/attempts do not get recorded or recognized in the app, it may be difficult to model (though it could be included in the simulation I designed).</li>
+<li><strong>Skill/Difficulty Interactions</strong> - Some players may be better at harder puzzles, but I’m modeling player skill as a fixed intercept.</li>
+<li><strong>Scaling Issues</strong> - This model probably won’t scale well as the number of player-times increases. One consideration would be to reduce the frequency at which player skill is estimated (e.g.&nbsp;monthly instead of daily).</li>
+</ul>
+<p>I’d welcome any additional feedback/critique in the comments. This is a new area of study for me and I’m eager to learn more!</p>
 
 
 </section>

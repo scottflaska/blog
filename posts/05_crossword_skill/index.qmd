@@ -1,9 +1,9 @@
 ---
 title: "Tracking Changes in Crossword Player Skill"
 author: "Scott Flaska"
-date: "2025-04-27"
+date: "2025-05-03"
 draft: false
-categories: [bayesian, state space, stan, r]
+categories: [bayesian, stan, r]
 image: "images/player_skill.png"
 format: 
   html:
@@ -28,7 +28,7 @@ I lose to Dan and Karl almost every day and I’m rarely within 15 seconds of th
 -   **Players don’t compete every day.** Dan, Karl, and I play almost every day, but we all miss days occasionally. Matt and Peter play too, but much less frequently. With a wide variance in puzzle difficulty, the puzzles players randomly choose to play could impact their average time.
 -   **Each player’s skill is dynamic.** I think it’s a reasonable assumption that players change over time, so it wouldn’t make sense to model their skill as a stationary process.
 
-In this post, I'll outline a model that could be used to evaluate crossword player performance (borrowing heavily from [this excellent post](https://richjand.rbind.io/post/2021/08/23/state-space-season-simulations/) by Richard Anderson)
+In this post, I'll outline a model that could be used to evaluate crossword player performance (borrowing heavily from [this excellent post](http://richjand.rbind.io/post/2021/08/23/state-space-season-simulations/) by Richard Anderson)
 
 # Simulating Crossword Times
 I'll start by creating a simulation that generates fake crossword times. With a simulation, I can explicitly specify my hidden parameters of interest (player skill and puzzle difficulty) and test that my model is able to return the specified values. I'll need to make some assumptions on the data generation process, but I'll define it as:
@@ -192,6 +192,10 @@ saveRDS(puzzle_results_obs, file = "puzzle_results_obs.rds")
 
 ```
 
+# Modeling Player Skill
+
+Now that I have a sample data frame of fake crossword times, I'll fit a Stan model on the data generating process described above.
+
 ``` r
 {{< include fit_model.R >}}
 ```
@@ -199,6 +203,7 @@ saveRDS(puzzle_results_obs, file = "puzzle_results_obs.rds")
 ``` stan
 {{< include model.stan >}}
 ```
+
 
 ```{r}
 
@@ -267,11 +272,14 @@ player_skill_plot_data %>%
 
 ```
 
-```{r}
+As shown in the plots above, the model effectively tracks latent puzzle difficulty and player skill, providing some confidence that the model will perform well when applied to real data.
 
-puzzle_results_obs %>% 
-  ggplot(mapping = aes(x = day,
-                       y = solve_time)) +
-  geom_point()
+# Critique
+While I'm pleased with the model I've developed, there is plenty of room for improvement. Specifically:
 
-```
+- **Practice Effect** - Players are likely to improve with practice - the more consistently they play, the better they get. I'm not accounting for this in any way.
+- **Censoring** - The data is [censored](https://en.wikipedia.org/wiki/Censoring_(statistics)). Players can forfeit mid-puzzle if they are unable to solve it which I am not accounting for. Since these times/attempts do not get recorded or recognized in the app, it may be difficult to model (though it could be included in the simulation I designed). 
+- **Skill/Difficulty Interactions** - Some players may be better at harder puzzles, but I'm modeling player skill as a fixed intercept. 
+- **Scaling Issues** - This model probably won't scale well as the number of player-times increases. One consideration would be to reduce the frequency at which player skill is estimated (e.g. monthly instead of daily).
+
+I'd welcome any additional feedback/critique in the comments. This is a new area of study for me and I'm eager to learn more!
