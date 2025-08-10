@@ -1,7 +1,7 @@
 ---
 title: "Tracking Changes in Crossword Player Skill"
 author: "Scott Flaska"
-date: "2025-05-03"
+date: "2025-06-30"
 draft: false
 categories: [bayesian, stan, r]
 image: "images/player_skill.png"
